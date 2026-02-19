@@ -125,7 +125,7 @@ export function RosieCharacter({
 export function ChesterCharacter({ 
   size = 'medium', 
   animated = false, 
-  pose = 'thumbsup',
+  pose = 'standing',
   className = '' 
 }: RescueBunnyProps) {
   const dimensions = sizeMap[size];
@@ -235,7 +235,7 @@ export function ChesterCharacter({
 export function PipCharacter({ 
   size = 'medium', 
   animated = false, 
-  pose = 'reading',
+  pose = 'standing',
   className = '' 
 }: RescueBunnyProps) {
   const dimensions = sizeMap[size];
