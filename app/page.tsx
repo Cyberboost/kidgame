@@ -36,7 +36,7 @@ export default function Home() {
   };
 
   const handleSelectProfile = (profileId: string) => {
-    router.push(`/game?profile=${profileId}`);
+    router.push(`/map?profile=${profileId}`);
   };
 
   const handleCreateProfile = async (

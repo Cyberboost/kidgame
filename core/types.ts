@@ -65,6 +65,8 @@ export interface Profile {
   };
   customWords: string[];
   wordPerformance: { [word: string]: WordPerformance };
+  levelProgress?: Record<number, { stars: number; completed: boolean }>;
+  totalStars?: number;
 }
 
 export interface GameSession {
