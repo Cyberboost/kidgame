@@ -8,7 +8,11 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyTier, DifficultyConfig> = {
     gardenFocusMax: 999, // Effectively unlimited for young kids
     gentleMode: true,
     allowRetry: true,
-    timerEnabled: false,
+    timerEnabled: true,
+    timerDuration: 15, // 15 seconds per round
+    shuffleInterval: 5, // Shuffle every 5 seconds
+    wordsPerRound: 3, // 3 words per round
+    maxStrikes: 3, // 3 wrong letter attempts
     consequences: {
       onFocusZero: 'endTurn',
       onIncorrectSubmit: 'addToReview',
@@ -21,7 +25,11 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyTier, DifficultyConfig> = {
     gardenFocusMax: 3,
     gentleMode: false,
     allowRetry: false,
-    timerEnabled: false,
+    timerEnabled: true,
+    timerDuration: 14, // 14 seconds per round
+    shuffleInterval: 4, // Shuffle every 4 seconds
+    wordsPerRound: 3, // 3-4 words per round (will use 3 here)
+    maxStrikes: 3,
     consequences: {
       onFocusZero: 'endTurnResetStreak',
       onIncorrectSubmit: 'immediateReset',
@@ -34,7 +42,11 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyTier, DifficultyConfig> = {
     gardenFocusMax: 3,
     gentleMode: false,
     allowRetry: true,
-    timerEnabled: false,
+    timerEnabled: true,
+    timerDuration: 12, // 12 seconds per round
+    shuffleInterval: 4, // Shuffle every 4 seconds
+    wordsPerRound: 4, // 4 words per round
+    maxStrikes: 3,
     consequences: {
       onFocusZero: 'endTurnDisableHint',
       onIncorrectSubmit: 'requireRetry',
@@ -48,6 +60,10 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyTier, DifficultyConfig> = {
     gentleMode: false,
     allowRetry: false,
     timerEnabled: true,
+    timerDuration: 10, // 10 seconds per round
+    shuffleInterval: 3, // Shuffle every 3 seconds
+    wordsPerRound: 5, // 5 words per round
+    maxStrikes: 3,
     consequences: {
       onFocusZero: 'endTurnLoseMultiplier',
       onIncorrectSubmit: 'blockProgress',

@@ -117,3 +117,42 @@ export function getTile(
   }
   return board[row][col];
 }
+
+/**
+ * Shuffles the letters on the board while preserving tile states (cleared, locked, selected, bunnyTraps)
+ */
+export function shuffleBoard(board: TileState[][]): TileState[][] {
+  // Extract all letters and their current positions
+  const letters: string[] = [];
+  const availablePositions: { row: number; col: number }[] = [];
+  
+  for (let row = 0; row < board.length; row++) {
+    for (let col = 0; col < board[row].length; col++) {
+      const tile = board[row][col];
+      // Only shuffle non-cleared tiles
+      if (!tile.cleared) {
+        letters.push(tile.letter);
+        availablePositions.push({ row, col });
+      }
+    }
+  }
+  
+  // Shuffle letters using Fisher-Yates
+  for (let i = letters.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letters[i], letters[j]] = [letters[j], letters[i]];
+  }
+  
+  // Create new board with shuffled letters
+  const newBoard = board.map(row => row.map(tile => ({ ...tile })));
+  
+  // Assign shuffled letters back to available positions
+  let letterIndex = 0;
+  for (const pos of availablePositions) {
+    newBoard[pos.row][pos.col].letter = letters[letterIndex++];
+    // Clear the selected state on shuffle but preserve other states
+    newBoard[pos.row][pos.col].selected = false;
+  }
+  
+  return newBoard;
+}
