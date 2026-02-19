@@ -7,6 +7,7 @@ interface GridProps {
   board: TileState[][];
   onTileClick: (row: number, col: number) => void;
   disabled?: boolean;
+  wobble?: boolean;
   tileStyles: {
     tileNormal: string;
     tileSelected: string;
@@ -15,7 +16,7 @@ interface GridProps {
   };
 }
 
-export default function Grid({ board, onTileClick, disabled, tileStyles }: GridProps) {
+export default function Grid({ board, onTileClick, disabled, wobble, tileStyles }: GridProps) {
   const gridSize = board.length;
   
   // Calculate grid template columns based on size
@@ -40,6 +41,7 @@ export default function Grid({ board, onTileClick, disabled, tileStyles }: GridP
             tile={tile}
             onClick={() => onTileClick(rowIndex, colIndex)}
             disabled={disabled}
+            wobble={wobble && !tile.cleared}
             tileStyles={tileStyles}
           />
         ))

@@ -6,7 +6,7 @@ import { Profile, GameSession, GameSettings, TileState } from '@/core/types';
 import { getProfile, getSettings, saveSettings, saveSession, resetAllData, exportData } from '@/core/persistence';
 import { saveProfileData } from '@/profiles/profileManager';
 import { DIFFICULTY_CONFIGS, getDifficultyForGrade } from '@/core/difficultyConfig';
-import { generateBoard } from '@/core/boardGenerator';
+import { generateBoard, shuffleBoard } from '@/core/boardGenerator';
 import { ReviewBasket } from '@/core/reviewBasket';
 import { gameEngine } from '@/core/gameEngine';
 import { WordSelector } from '@/words/wordSelector';
@@ -15,9 +15,15 @@ import { PerformanceTracker } from '@/words/performanceTracker';
 import { getThemeById } from '@/themes/themeRegistry';
 import Grid from '@/components/Grid';
 import WordCard from '@/components/WordCard';
+import WordList from '@/components/WordList';
+import CountdownTimer from '@/components/CountdownTimer';
+import BunnyRunner from '@/components/BunnyRunner';
 import ActionBar from '@/components/ActionBar';
 import Header from '@/components/Header';
 import SettingsModal from '@/components/SettingsModal';
+
+const TICK_INTERVAL_SECONDS = 0.1; // 100ms tick interval
+const WOBBLE_WARNING_SECONDS = 0.5; // Show wobble 500ms before shuffle
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -34,6 +40,16 @@ function GameContent() {
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [turnNumber, setTurnNumber] = useState(0);
+  
+  // Multi-word round state
+  const [targetWords, setTargetWords] = useState<string[]>([]);
+  const [foundWords, setFoundWords] = useState<string[]>([]);
+  const [strikes, setStrikes] = useState(0);
+  const [roundTimeRemaining, setRoundTimeRemaining] = useState(0);
+  const [roundStartTime, setRoundStartTime] = useState(Date.now());
+  const [lastShuffleTime, setLastShuffleTime] = useState(Date.now());
+  const [bunnyRunnerTrigger, setBunnyRunnerTrigger] = useState(0);
+  const [wobble, setWobble] = useState(false);
 
   const loadGame = useCallback(async () => {
     if (!profileId) {
@@ -75,6 +91,29 @@ function GameContent() {
       setPerformanceTracker(tracker);
 
       const firstWord = selector.getNextWord(0, basket);
+      
+      // Initialize multi-word round if enabled
+      const multiWordMode = config.wordsPerRound && config.wordsPerRound > 1;
+      let initialTargetWords: string[] = [];
+      let initialTimeRemaining = 0;
+      
+      if (multiWordMode) {
+        // Pick multiple words for the round
+        const wordCount = config.wordsPerRound || 3;
+        for (let i = 0; i < wordCount; i++) {
+          const word = selector.getNextWord(i, basket);
+          initialTargetWords.push(word);
+        }
+        setTargetWords(initialTargetWords);
+        setFoundWords([]);
+        setStrikes(0);
+        
+        // Initialize timer
+        initialTimeRemaining = config.timerDuration || 15;
+        setRoundTimeRemaining(initialTimeRemaining);
+        setRoundStartTime(Date.now());
+        setLastShuffleTime(Date.now());
+      }
 
       const newSession: GameSession = {
         id: `session-${Date.now()}`,
@@ -90,7 +129,7 @@ function GameContent() {
         activeWords: wordList,
         reviewBasket: [],
         currentWordIndex: 0,
-        currentWord: firstWord,
+        currentWord: multiWordMode ? initialTargetWords[0] : firstWord,
         currentInput: '',
         selectedTiles: [],
         gardenFocus: config.gardenFocusMax,
@@ -103,6 +142,12 @@ function GameContent() {
         turnStartTime: Date.now(),
         sessionStartTime: Date.now(),
         completed: false,
+        targetWords: multiWordMode ? initialTargetWords : [],
+        foundWords: [],
+        strikes: 0,
+        roundTimeRemaining: multiWordMode ? initialTimeRemaining : 0,
+        roundStartTime: Date.now(),
+        lastShuffleTime: Date.now(),
         stats: {
           [profileId]: {
             wordsSpelled: 0,
@@ -130,11 +175,152 @@ function GameContent() {
     }
   }, [profileId, loadGame]);
 
+  // Timer countdown effect
+  useEffect(() => {
+    if (!session || session.completed || !profile) return;
+    
+    const config = DIFFICULTY_CONFIGS[session.difficulty];
+    const multiWordMode = config.wordsPerRound && config.wordsPerRound > 1;
+    
+    if (!multiWordMode || !config.timerEnabled) return;
+    
+    const interval = setInterval(() => {
+      setRoundTimeRemaining(prev => {
+        if (prev <= 1) {
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [session, profile]);
+
+  // Shuffle interval effect
+  useEffect(() => {
+    if (!session || session.completed || !profile) return;
+    
+    const config = DIFFICULTY_CONFIGS[session.difficulty];
+    const multiWordMode = config.wordsPerRound && config.wordsPerRound > 1;
+    
+    if (!multiWordMode || !config.shuffleInterval) return;
+    
+    let ticks = 0;
+    const interval = setInterval(() => {
+      ticks++;
+      const elapsed = ticks * TICK_INTERVAL_SECONDS;
+      
+      // Trigger wobble before shuffle
+      if (elapsed >= config.shuffleInterval - WOBBLE_WARNING_SECONDS && elapsed < config.shuffleInterval && !wobble) {
+        setWobble(true);
+      }
+      
+      // Perform shuffle
+      if (elapsed >= config.shuffleInterval) {
+        // Clear selection before shuffle
+        setSession(prev => {
+          if (!prev) return prev;
+          const newBoard = prev.board.map(row =>
+            row.map(tile => ({ ...tile, selected: false }))
+          );
+          return {
+            ...prev,
+            board: shuffleBoard(newBoard),
+            currentInput: '',
+            selectedTiles: [],
+          };
+        });
+        setLastShuffleTime(Date.now());
+        setWobble(false);
+        ticks = 0; // Reset counter
+      }
+    }, 100);
+    
+    return () => clearInterval(interval);
+  }, [session, lastShuffleTime, wobble, profile]);
+  
+  // Reset round function
+  const resetRound = useCallback(() => {
+    if (!session || !wordSelector || !reviewBasket || !profile) return;
+    
+    const config = DIFFICULTY_CONFIGS[session.difficulty];
+    const multiWordMode = config.wordsPerRound && config.wordsPerRound > 1;
+    
+    if (!multiWordMode) return;
+    
+    // Generate new board
+    const { board, bunnyTraps } = generateBoard(config.gridSize);
+    
+    // Pick new words
+    const wordCount = config.wordsPerRound || 3;
+    const newTargetWords: string[] = [];
+    for (let i = 0; i < wordCount; i++) {
+      const word = wordSelector.getNextWord(turnNumber + i, reviewBasket);
+      newTargetWords.push(word);
+    }
+    
+    // Reset state
+    setTargetWords(newTargetWords);
+    setFoundWords([]);
+    setStrikes(0);
+    setRoundTimeRemaining(config.timerDuration || 15);
+    setRoundStartTime(Date.now());
+    setLastShuffleTime(Date.now());
+    setTurnNumber(prev => prev + 1);
+    setMessage('');
+    
+    setSession({
+      ...session,
+      board,
+      bunnyTraps,
+      currentWord: newTargetWords[0],
+      currentInput: '',
+      selectedTiles: [],
+      gardenFocus: config.gardenFocusMax,
+      turnStartTime: Date.now(),
+    });
+  }, [session, wordSelector, reviewBasket, turnNumber, profile]);
+  
+  // Handle time up
+  const handleTimeUp = useCallback(() => {
+    setMessage('⏰ Time\'s up! Try again!');
+    setTimeout(() => {
+      resetRound();
+    }, 1500);
+  }, [resetRound]);
+
+  const handleFocusZeroEndTurn = useCallback(() => {
+    if (!session || !reviewBasket || !wordSelector || !profile) return;
+
+    const config = DIFFICULTY_CONFIGS[session.difficulty];
+    
+    // Add word to review basket
+    reviewBasket.add(session.currentWord);
+    
+    // Apply consequence
+    gameEngine.applyFocusZeroConsequence(session, config);
+    
+    // Reset and move to next turn
+    gameEngine.resetTurn(session);
+    const nextWord = wordSelector.getNextWord(turnNumber + 1, reviewBasket);
+    
+    setTurnNumber(turnNumber + 1);
+    setSession({
+      ...session,
+      currentWord: nextWord,
+      reviewBasket: reviewBasket.getAll(),
+    });
+    setMessage('Garden Focus reached zero. Moving to next word.');
+    
+    setTimeout(() => setMessage(''), 2000);
+  }, [session, reviewBasket, wordSelector, turnNumber, profile]);
+
   const handleTileClick = useCallback((row: number, col: number) => {
     if (!session || !profile || !reviewBasket) return;
 
     const config = DIFFICULTY_CONFIGS[session.difficulty];
     const tile = session.board[row][col];
+    const multiWordMode = config.wordsPerRound && config.wordsPerRound > 1;
 
     // Validate letter selection
     const validation = gameEngine.validateLetterSelection(session, tile, config);
@@ -163,6 +349,20 @@ function GameContent() {
       if (validation.focusReduced) {
         const newFocus = session.gardenFocus - 1;
         
+        // Track strikes in multi-word mode
+        if (multiWordMode) {
+          const newStrikes = strikes + 1;
+          setStrikes(newStrikes);
+          
+          if (newStrikes >= config.maxStrikes) {
+            setMessage(`❌ ${config.maxStrikes} strikes! Try again!`);
+            setTimeout(() => {
+              resetRound();
+            }, 1500);
+            return;
+          }
+        }
+        
         if (validation.tileLocked) {
           const newBoard = session.board.map(r => r.map(t => ({ ...t })));
           newBoard[row][col].locked = true;
@@ -182,33 +382,7 @@ function GameContent() {
         stats.letterMistakes++;
       }
     }
-  }, [session, profile, reviewBasket]);
-
-  const handleFocusZeroEndTurn = useCallback(() => {
-    if (!session || !reviewBasket || !wordSelector || !profile) return;
-
-    const config = DIFFICULTY_CONFIGS[session.difficulty];
-    
-    // Add word to review basket
-    reviewBasket.add(session.currentWord);
-    
-    // Apply consequence
-    gameEngine.applyFocusZeroConsequence(session, config);
-    
-    // Reset and move to next turn
-    gameEngine.resetTurn(session);
-    const nextWord = wordSelector.getNextWord(turnNumber + 1, reviewBasket);
-    
-    setTurnNumber(turnNumber + 1);
-    setSession({
-      ...session,
-      currentWord: nextWord,
-      reviewBasket: reviewBasket.getAll(),
-    });
-    setMessage('Garden Focus reached zero. Moving to next word.');
-    
-    setTimeout(() => setMessage(''), 2000);
-  }, [session, reviewBasket, wordSelector, turnNumber, profile]);
+  }, [session, profile, reviewBasket, strikes, resetRound, handleFocusZeroEndTurn, performanceTracker]);
 
   const handleUndo = useCallback(() => {
     if (!session || session.selectedTiles.length === 0) return;
@@ -247,6 +421,8 @@ function GameContent() {
     if (!session || !profile || !reviewBasket || !wordSelector || !performanceTracker) return;
 
     const config = DIFFICULTY_CONFIGS[session.difficulty];
+    const multiWordMode = config.wordsPerRound && config.wordsPerRound > 1;
+    
     const result = gameEngine.submitWord(session, config);
 
     if (result.correct) {
@@ -279,8 +455,42 @@ function GameContent() {
       stats.wordsSpelled++;
       stats.bunniesRescued += result.bunniesRescued;
       stats.turnsTaken++;
+      
+      // Multi-word mode: add to found words and trigger bunny animation
+      if (multiWordMode && result.wordCompleted) {
+        setFoundWords(prev => {
+          const newFoundWords = [...prev, result.wordCompleted!];
+          
+          // Check if all words found
+          if (newFoundWords.length >= session.targetWords.length) {
+            setMessage('🎉 All words found! Starting new round...');
+            setTimeout(() => {
+              resetRound();
+            }, 2000);
+          } else {
+            setMessage('✅ Word found! Keep going!');
+            setTimeout(() => setMessage(''), 1500);
+          }
+          
+          return newFoundWords;
+        });
+        setBunnyRunnerTrigger(prev => prev + 1);
+        
+        // Update session state
+        setSession({
+          ...session,
+          board: newBoard,
+          currentInput: '',
+          selectedTiles: [],
+          bunniesRescued: newBunniesRescued,
+          wordsSpelled: newWordsSpelled,
+          streak: newStreak,
+          reviewBasket: reviewBasket.getAll(),
+        });
+        return;
+      }
 
-      // Check win condition
+      // Check win condition (original game mode)
       const won = gameEngine.checkWinCondition(session, reviewBasket);
 
       if (won) {
@@ -359,7 +569,7 @@ function GameContent() {
 
       setTimeout(() => setMessage(''), 3000);
     }
-  }, [session, profile, reviewBasket, wordSelector, performanceTracker, turnNumber, handleClear]);
+  }, [session, profile, reviewBasket, wordSelector, performanceTracker, turnNumber, handleClear, resetRound, router]);
 
   const handleSettingsChange = async (newSettings: GameSettings) => {
     setSettings(newSettings);
@@ -409,15 +619,21 @@ function GameContent() {
 
   const theme = getThemeById(session.themeId);
   const remainingBunnies = session.bunnyTraps.filter(t => !t.rescued).length;
+  const config = DIFFICULTY_CONFIGS[session.difficulty];
+  const multiWordMode = config.wordsPerRound && config.wordsPerRound > 1;
 
   return (
     <div className={`min-h-screen ${theme?.styles.background || 'bg-gradient-to-b from-sky-300 to-grass-200'}`}>
+      <BunnyRunner trigger={bunnyRunnerTrigger} />
+      
       <Header
         themeName={theme?.name || 'Front Lawn'}
         bunniesRemaining={remainingBunnies}
         totalBunnies={session.totalBunnies}
         reviewBasketCount={session.reviewBasket.length}
         streak={session.streak}
+        strikes={multiWordMode ? strikes : undefined}
+        maxStrikes={multiWordMode ? config.maxStrikes : undefined}
         onSettings={() => setShowSettings(true)}
       />
 
@@ -428,18 +644,33 @@ function GameContent() {
           </div>
         )}
 
-        <WordCard
-          word={session.currentWord}
-          currentInput={session.currentInput}
-          gardenFocus={session.gardenFocus}
-          gardenFocusMax={session.gardenFocusMax}
-          speechEnabled={settings.speechEnabled}
-        />
+        {multiWordMode ? (
+          <>
+            <CountdownTimer 
+              timeRemaining={roundTimeRemaining}
+              totalTime={config.timerDuration || 15}
+              onTimeUp={handleTimeUp}
+            />
+            <WordList 
+              targetWords={targetWords}
+              foundWords={foundWords}
+            />
+          </>
+        ) : (
+          <WordCard
+            word={session.currentWord}
+            currentInput={session.currentInput}
+            gardenFocus={session.gardenFocus}
+            gardenFocusMax={session.gardenFocusMax}
+            speechEnabled={settings.speechEnabled}
+          />
+        )}
 
         <Grid
           board={session.board}
           onTileClick={handleTileClick}
           disabled={session.completed}
+          wobble={wobble}
           tileStyles={theme?.styles || {
             tileNormal: 'bg-grass-100 border-grass-400 text-gray-800',
             tileSelected: 'bg-yellow-300 border-yellow-600 text-gray-900 ring-4 ring-yellow-400',

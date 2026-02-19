@@ -12,6 +12,10 @@ export interface DifficultyConfig {
   gentleMode: boolean;
   allowRetry: boolean;
   timerEnabled: boolean;
+  timerDuration: number; // seconds per round
+  shuffleInterval: number; // seconds between shuffles
+  wordsPerRound: number; // number of target words per round
+  maxStrikes: number; // wrong letter attempts before round reset
   consequences: {
     onFocusZero: 'endTurn' | 'endTurnResetStreak' | 'endTurnDisableHint' | 'endTurnLoseMultiplier';
     onIncorrectSubmit: 'addToReview' | 'immediateReset' | 'requireRetry' | 'blockProgress';
@@ -94,6 +98,13 @@ export interface GameSession {
   turnStartTime: number;
   sessionStartTime: number;
   completed: boolean;
+  // Multi-word round support
+  targetWords: string[]; // Words to find in this round
+  foundWords: string[]; // Words already found in this round
+  strikes: number; // Wrong letter selections count
+  roundTimeRemaining: number; // Time left in round (seconds)
+  roundStartTime: number; // When current round started
+  lastShuffleTime: number; // When letters were last shuffled
   stats: {
     [profileId: string]: {
       wordsSpelled: number;

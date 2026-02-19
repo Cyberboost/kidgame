@@ -1,11 +1,15 @@
 'use client';
 
+import StrikesDisplay from './StrikesDisplay';
+
 interface HeaderProps {
   themeName: string;
   bunniesRemaining: number;
   totalBunnies: number;
   reviewBasketCount: number;
   streak: number;
+  strikes?: number;
+  maxStrikes?: number;
   onSettings: () => void;
 }
 
@@ -15,6 +19,8 @@ export default function Header({
   totalBunnies,
   reviewBasketCount,
   streak,
+  strikes,
+  maxStrikes,
   onSettings,
 }: HeaderProps) {
   return (
@@ -58,6 +64,12 @@ export default function Header({
               <span className="text-lg">🔥</span>
               <span className="font-semibold">Streak:</span>
               <span>{streak}</span>
+            </div>
+          )}
+
+          {typeof strikes === 'number' && typeof maxStrikes === 'number' && (
+            <div className="bg-red-50 px-3 py-2 rounded-lg">
+              <StrikesDisplay strikes={strikes} maxStrikes={maxStrikes} />
             </div>
           )}
         </div>

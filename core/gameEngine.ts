@@ -24,27 +24,53 @@ export class GameEngine {
       return { valid: false, message: 'This tile is locked for this turn.' };
     }
 
-    // Check if this letter matches the next expected letter in the target word
-    const targetWord = session.currentWord.toUpperCase();
+    // Check if this letter matches the next expected letter in ANY of the target words
     const currentInput = session.currentInput.toUpperCase();
-    const expectedLetter = targetWord[currentInput.length];
+    
+    // Support both new multi-word format and legacy single-word format
+    const targetWords = session.targetWords 
+      ? session.targetWords.map(w => w.toUpperCase())
+      : [session.currentWord.toUpperCase()];
+    const foundWords = session.foundWords 
+      ? session.foundWords.map(w => w.toUpperCase())
+      : [];
+    
+    // Filter out already found words
+    const remainingWords = targetWords.filter(w => !foundWords.includes(w));
+    
+    // Check if the letter is valid for any remaining word
+    let isValidForAnyWord = false;
+    for (const word of remainingWords) {
+      if (currentInput.length < word.length && tile.letter === word[currentInput.length]) {
+        isValidForAnyWord = true;
+        break;
+      }
+    }
 
-    if (tile.letter === expectedLetter) {
+    if (isValidForAnyWord) {
       // Correct letter
       return { valid: true };
     } else {
-      // Incorrect letter - reduce garden focus
-      const newFocus = session.gardenFocus - 1;
-      
+      // Incorrect letter - this is a strike
       const result: ValidationResult = {
         valid: false,
-        message: `That's not the next letter. Try again!`,
+        message: `That letter doesn't match any target word. Strike!`,
         focusReduced: true,
       };
 
-      // Check if focus reached zero
-      if (newFocus <= 0) {
-        result.turnEnded = true;
+      // Check if this causes game over (3 strikes) - only if using new system
+      if (typeof session.strikes === 'number') {
+        const newStrikes = session.strikes + 1;
+        if (newStrikes >= config.maxStrikes) {
+          result.turnEnded = true;
+          result.message = `3 strikes! Round over. Try again!`;
+        }
+      } else {
+        // Legacy behavior - use garden focus
+        const newFocus = session.gardenFocus - 1;
+        if (newFocus <= 0) {
+          result.turnEnded = true;
+        }
       }
 
       // Guardian tier locks the tile on incorrect letter
@@ -65,10 +91,21 @@ export class GameEngine {
     message: string;
     consequence?: string;
     requireRetry?: boolean;
+    wordCompleted?: string;
   } {
     const input = session.currentInput.toUpperCase();
-    const target = session.currentWord.toUpperCase();
-    const correct = input === target;
+    
+    // Support both new multi-word format and legacy single-word format
+    const targetWords = session.targetWords 
+      ? session.targetWords.map(w => w.toUpperCase())
+      : [session.currentWord.toUpperCase()];
+    const foundWords = session.foundWords 
+      ? session.foundWords.map(w => w.toUpperCase())
+      : [];
+    
+    // Check if input matches any target word that hasn't been found yet
+    const matchedWord = targetWords.find(w => w === input && !foundWords.includes(w));
+    const correct = !!matchedWord;
 
     if (correct) {
       // Count bunnies rescued
@@ -94,6 +131,7 @@ export class GameEngine {
       return {
         correct: true,
         bunniesRescued,
+        wordCompleted: matchedWord,
         message: bunniesRescued > 0 
           ? `Perfect! You rescued ${bunniesRescued} ${bunniesRescued === 1 ? 'bunny' : 'bunnies'}!`
           : 'Great job spelling that word!',
@@ -103,33 +141,51 @@ export class GameEngine {
       let consequence = '';
       let requireRetry = false;
 
-      switch (config.consequences.onIncorrectSubmit) {
-        case 'addToReview':
-          consequence = 'Word added to review basket.';
-          break;
-        case 'immediateReset':
-          consequence = 'Try another word.';
-          break;
-        case 'requireRetry':
-          consequence = 'Try spelling this word again!';
-          requireRetry = true;
-          break;
-        case 'blockProgress':
-          consequence = 'You must spell this word correctly to continue.';
-          requireRetry = true;
-          break;
+      // Legacy behavior if not using new multi-word system
+      if (!session.targetWords) {
+        switch (config.consequences.onIncorrectSubmit) {
+          case 'addToReview':
+            consequence = 'Word added to review basket.';
+            break;
+          case 'immediateReset':
+            consequence = 'Try another word.';
+            break;
+          case 'requireRetry':
+            consequence = 'Try spelling this word again!';
+            requireRetry = true;
+            break;
+          case 'blockProgress':
+            consequence = 'You must spell this word correctly to continue.';
+            requireRetry = true;
+            break;
+        }
+
+        return {
+          correct: false,
+          bunniesRescued: 0,
+          message: config.gentleMode 
+            ? `Not quite. The word is "${session.currentWord}". Would you like to try again?`
+            : `That's not correct. ${consequence}`,
+          consequence,
+          requireRetry,
+        };
       }
 
+      // New multi-word system: incorrect submit is just a failed attempt
       return {
         correct: false,
         bunniesRescued: 0,
-        message: config.gentleMode 
-          ? `Not quite. The word is "${session.currentWord}". Would you like to try again?`
-          : `That's not correct. ${consequence}`,
-        consequence,
-        requireRetry,
+        message: `That's not one of the target words. Try again!`,
       };
     }
+  }
+
+  /**
+   * Check if all words in the current round have been found
+   */
+  checkRoundComplete(session: GameSession): boolean {
+    if (!session.targetWords || session.targetWords.length === 0) return false;
+    return session.foundWords.length >= session.targetWords.length;
   }
 
   checkWinCondition(session: GameSession, reviewBasket: ReviewBasket): boolean {
