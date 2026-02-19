@@ -24,6 +24,8 @@ export function createProfile(
     wordLists: {},
     customWords: [],
     wordPerformance: {},
+    levelProgress: {},
+    totalStars: 0,
   };
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Profile, GameSession, GameSettings, TileState } from '@/core/types';
+import { Profile, GameSession, GameSettings, TileState, Grade } from '@/core/types';
 import { getProfile, getSettings, saveSettings, saveSession, resetAllData, exportData } from '@/core/persistence';
 import { saveProfileData } from '@/profiles/profileManager';
 import { DIFFICULTY_CONFIGS, getDifficultyForGrade } from '@/core/difficultyConfig';
@@ -13,6 +13,7 @@ import { WordSelector } from '@/words/wordSelector';
 import { getWordListForGrade } from '@/words/starterLists';
 import { PerformanceTracker } from '@/words/performanceTracker';
 import { getThemeById } from '@/themes/themeRegistry';
+import { getLevelById } from '@/core/levelConfig';
 import Grid from '@/components/Grid';
 import WordCard from '@/components/WordCard';
 import ActionBar from '@/components/ActionBar';
@@ -23,6 +24,7 @@ function GameContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const profileId = searchParams.get('profile');
+  const levelId = searchParams.get('level');
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<GameSession | null>(null);
@@ -59,13 +61,22 @@ function GameContent() {
         musicEnabled: true,
       });
 
+      // Get level config if level specified
+      let gradeToUse: Grade = loadedProfile.defaultGrade;
+      if (levelId) {
+        const level = getLevelById(parseInt(levelId, 10));
+        if (level) {
+          gradeToUse = level.grade;
+        }
+      }
+
       // Initialize game
-      const difficulty = loadedProfile.preferredDifficulty || getDifficultyForGrade(loadedProfile.defaultGrade);
+      const difficulty = loadedProfile.preferredDifficulty || getDifficultyForGrade(gradeToUse);
       const config = DIFFICULTY_CONFIGS[difficulty];
       const { board, bunnyTraps } = generateBoard(config.gridSize);
 
       // Setup word lists
-      const wordList = getWordListForGrade(loadedProfile.defaultGrade, loadedProfile.customWords);
+      const wordList = getWordListForGrade(gradeToUse, loadedProfile.customWords);
       const selector = new WordSelector(wordList);
       const basket = new ReviewBasket();
       const tracker = new PerformanceTracker(loadedProfile.wordPerformance);
@@ -82,7 +93,7 @@ function GameContent() {
         profileIds: [profileId],
         currentPlayerIndex: 0,
         difficulty,
-        grade: loadedProfile.defaultGrade,
+        grade: gradeToUse,
         themeId: loadedProfile.unlockedThemes[0] || 'front-lawn',
         gridSize: config.gridSize,
         board,
@@ -284,7 +295,16 @@ function GameContent() {
       const won = gameEngine.checkWinCondition(session, reviewBasket);
 
       if (won) {
-        setMessage(`🎉 You won! All bunnies rescued and review basket cleared!`);
+        // Calculate stars based on performance (3 stars for excellent, 2 for good, 1 for completion)
+        const totalMistakes = stats.letterMistakes + stats.incorrectSubmits;
+        let starsEarned = 1; // At least 1 star for completion
+        if (totalMistakes === 0) {
+          starsEarned = 3; // Perfect performance
+        } else if (totalMistakes <= 2) {
+          starsEarned = 2; // Good performance
+        }
+
+        setMessage(`🎉 You won! All bunnies rescued and review basket cleared! ⭐ ${starsEarned} stars!`);
         setSession({
           ...session,
           completed: true,
@@ -301,9 +321,39 @@ function GameContent() {
         profile.stats.totalWordsSpelled++;
         profile.stats.currentStreak = newStreak;
         profile.wordPerformance = performanceTracker.getAllPerformances();
+
+        // Update level progress if playing a specific level
+        if (levelId) {
+          const level = getLevelById(parseInt(levelId, 10));
+          if (level) {
+            const currentProgress = profile.levelProgress?.[level.id];
+            const previousStars = currentProgress?.stars || 0;
+            
+            // Only update if new stars are better
+            if (starsEarned > previousStars) {
+              if (!profile.levelProgress) profile.levelProgress = {};
+              profile.levelProgress[level.id] = {
+                stars: starsEarned,
+                completed: true,
+              };
+
+              // Update total stars
+              const starDiff = starsEarned - previousStars;
+              profile.totalStars = (profile.totalStars || 0) + starDiff;
+            }
+          }
+        }
+
         await saveProfileData(profile);
 
-        setTimeout(() => router.push('/'), 3000);
+        setTimeout(() => {
+          // Return to map if playing from map, otherwise home
+          if (levelId) {
+            router.push(`/map?profile=${profileId}`);
+          } else {
+            router.push('/');
+          }
+        }, 3000);
         return;
       }
 
