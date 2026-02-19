@@ -155,16 +155,19 @@ export function getLevelsByZone(zone: Zone): LevelConfig[] {
 }
 
 /**
+ * Map of bunny types to indices for RescueBunny component
+ */
+const BUNNY_TYPE_TO_INDEX_MAP: Record<RescueBunnyType, number> = {
+  rosie: 0,
+  chester: 1,
+  pip: 2,
+  violet: 3,
+};
+
+/**
  * Get bunny index (0-3) for use with RescueBunny component
  */
 export function getBunnyIndexForLevel(levelId: number): number {
-  const bunnyMap: Record<RescueBunnyType, number> = {
-    rosie: 0,
-    chester: 1,
-    pip: 2,
-    violet: 3,
-  };
-  
   const bunnyType = getRescueBunnyForLevel(levelId);
-  return bunnyType ? bunnyMap[bunnyType] : 0;
+  return bunnyType ? BUNNY_TYPE_TO_INDEX_MAP[bunnyType] : 0;
 }

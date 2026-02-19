@@ -283,7 +283,6 @@ export function PipCharacter({
       {/* Round black-rimmed glasses */}
       <circle cx="52" cy={eyeY} r="8" fill="none" stroke="#1A1A1A" strokeWidth="2" />
       <circle cx="68" cy={eyeY} r="8" fill="none" stroke="#1A1A1A" strokeWidth="2" />
-      <line x1="60" y1={eyeY} x2="60" y2={eyeY} stroke="#1A1A1A" strokeWidth="2" />
       
       {/* Eyes behind glasses */}
       <circle cx="52" cy={eyeY} r="4" fill="#1A1A1A" />
