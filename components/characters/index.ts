@@ -6,3 +6,5 @@ export {
   RescueBunny,
   type RescueBunnyProps 
 } from './RescueBunnies';
+
+export { default as LivyCharacter, type LivyPose } from './LivyCharacter';
