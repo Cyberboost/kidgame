@@ -107,6 +107,7 @@ export default function GameMap({ profile, onLevelSelect, onBack }: GameMapProps
           {/* SVG Path */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
+            viewBox="0 0 300 100"
             preserveAspectRatio="none"
           >
             <defs>
@@ -117,8 +118,8 @@ export default function GameMap({ profile, onLevelSelect, onBack }: GameMapProps
             </defs>
             <path
               d={LEVELS.map((level, i) => {
-                if (i === 0) return `M ${level.position.x}% ${level.position.y}%`;
-                return `L ${level.position.x}% ${level.position.y}%`;
+                if (i === 0) return `M ${level.position.x * 3} ${level.position.y}`;
+                return `L ${level.position.x * 3} ${level.position.y}`;
               }).join(' ')}
               stroke="#8B4513"
               strokeWidth="6"
