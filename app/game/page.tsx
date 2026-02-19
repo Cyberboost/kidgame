@@ -18,6 +18,7 @@ import WordCard from '@/components/WordCard';
 import ActionBar from '@/components/ActionBar';
 import Header from '@/components/Header';
 import SettingsModal from '@/components/SettingsModal';
+import { LivyCharacter } from '@/components/characters';
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -34,6 +35,8 @@ function GameContent() {
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [turnNumber, setTurnNumber] = useState(0);
+  const [livyPose, setLivyPose] = useState<'waving' | 'celebrating' | 'cheering' | 'thinking' | null>(null);
+  const [showLivy, setShowLivy] = useState(false);
 
   const loadGame = useCallback(async () => {
     if (!profileId) {
@@ -285,6 +288,8 @@ function GameContent() {
 
       if (won) {
         setMessage(`🎉 You won! All bunnies rescued and review basket cleared!`);
+        setLivyPose('celebrating');
+        setShowLivy(true);
         setSession({
           ...session,
           completed: true,
@@ -303,9 +308,17 @@ function GameContent() {
         profile.wordPerformance = performanceTracker.getAllPerformances();
         await saveProfileData(profile);
 
-        setTimeout(() => router.push('/'), 3000);
+        setTimeout(() => {
+          setShowLivy(false);
+          router.push('/');
+        }, 3000);
         return;
       }
+
+      // Show cheering Livy for correct word
+      setLivyPose('cheering');
+      setShowLivy(true);
+      setTimeout(() => setShowLivy(false), 1500);
 
       // Move to next word
       gameEngine.resetTurn(session);
@@ -338,6 +351,11 @@ function GameContent() {
 
       const stats = session.stats[profile.id];
       stats.incorrectSubmits++;
+
+      // Show thinking Livy for incorrect submission
+      setLivyPose('thinking');
+      setShowLivy(true);
+      setTimeout(() => setShowLivy(false), 2000);
 
       if (result.requireRetry) {
         // Keep same word, just reset selection
@@ -397,8 +415,9 @@ function GameContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-300 to-grass-200">
-        <div className="text-2xl font-bold text-gray-800">Loading game...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-300 to-grass-200">
+        <LivyCharacter pose="thinking" size="large" animated={true} />
+        <div className="text-2xl font-bold text-gray-800 mt-4">Loading game...</div>
       </div>
     );
   }
@@ -425,6 +444,15 @@ function GameContent() {
         {message && (
           <div className="max-w-2xl mx-auto mb-4 bg-white border-2 border-blue-400 rounded-lg p-4 text-center font-semibold text-gray-800 shadow-lg">
             {message}
+          </div>
+        )}
+
+        {/* Livy character popup for reactions */}
+        {showLivy && livyPose && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="bg-white bg-opacity-90 rounded-2xl p-8 shadow-2xl">
+              <LivyCharacter pose={livyPose} size="large" animated={true} />
+            </div>
           </div>
         )}
 
