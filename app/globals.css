@@ -69,11 +69,6 @@ body {
   75% { transform: rotate(-5deg); transform-origin: bottom center; }
 }
 
-@keyframes carrotSparkle {
-  0%, 90%, 100% { opacity: 0; transform: scale(0); }
-  95% { opacity: 1; transform: scale(1.2); }
-}
-
 /* Button Styles - Brand Colors */
 .btn-primary {
   background: linear-gradient(to bottom, #6FCF6F, #4CAF50);

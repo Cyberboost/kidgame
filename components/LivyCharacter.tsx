@@ -2,14 +2,12 @@
 
 interface LivyCharacterProps {
   size?: 'small' | 'medium' | 'large' | 'hero';
-  pose?: 'standing' | 'waving' | 'celebrating' | 'thinking';
   animated?: boolean;
   className?: string;
 }
 
 export default function LivyCharacter({
   size = 'medium',
-  pose = 'standing',
   animated = false,
   className = '',
 }: LivyCharacterProps) {
@@ -22,7 +20,6 @@ export default function LivyCharacter({
   };
 
   const dimensions = sizeMap[size];
-  const scale = dimensions.width / 80; // Base scale on medium size
 
   return (
     <div
