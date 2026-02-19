@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -17,6 +19,7 @@
 }
 
 body {
+  font-family: 'Nunito', sans-serif;
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
@@ -52,4 +55,83 @@ body {
   font-weight: normal;
   font-style: normal;
   font-display: swap;
+}
+
+/* Livy Character Animations */
+@keyframes livyBob {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes livyWave {
+  0%, 100% { transform: rotate(0deg); transform-origin: bottom center; }
+  25% { transform: rotate(15deg); transform-origin: bottom center; }
+  75% { transform: rotate(-5deg); transform-origin: bottom center; }
+}
+
+/* Button Styles - Brand Colors */
+.btn-primary {
+  background: linear-gradient(to bottom, #6FCF6F, #4CAF50);
+  border-bottom: 4px solid #388E3C;
+  border-radius: 999px;
+  font-weight: 800;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to bottom, #81D881, #5CB85C);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.5);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+  border-bottom-width: 2px;
+}
+
+.btn-play {
+  background: linear-gradient(to bottom, #FFB347, #F7941D);
+  border-bottom: 4px solid #E07B00;
+  border-radius: 999px;
+  font-weight: 800;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(247, 148, 29, 0.4);
+  transition: all 0.2s;
+}
+
+.btn-play:hover {
+  background: linear-gradient(to bottom, #FFC261, #FF9E31);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(247, 148, 29, 0.5);
+}
+
+.btn-play:active {
+  transform: translateY(1px);
+  border-bottom-width: 2px;
+}
+
+.btn-secondary {
+  background: linear-gradient(to bottom, #4FC3F7, #29ABE2);
+  border-bottom: 4px solid #0277BD;
+  border-radius: 999px;
+  font-weight: 800;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(41, 171, 226, 0.4);
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(to bottom, #6DD0FF, #3BB5E8);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(41, 171, 226, 0.5);
+}
+
+.btn-secondary:active {
+  transform: translateY(1px);
+  border-bottom-width: 2px;
 }

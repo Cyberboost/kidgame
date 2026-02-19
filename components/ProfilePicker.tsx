@@ -2,6 +2,7 @@
 
 import { Profile, Grade, DifficultyTier } from '@/core/types';
 import { useState } from 'react';
+import LivyCharacter from './LivyCharacter';
 
 interface ProfilePickerProps {
   profiles: Profile[];
@@ -47,9 +48,28 @@ export default function ProfilePicker({
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-        🐰 Livy&apos;s Bunny Rescue Adventure
-      </h1>
+      {/* BRANDED HEADER - matches logo exactly */}
+      <div className="text-center mb-8">
+        {/* Livy Character - SVG art matching the logo */}
+        <div className="mx-auto mb-4 flex justify-center">
+          <LivyCharacter size="hero" animated={true} />
+        </div>
+        
+        {/* Logo Text - 3-line layout matching logo */}
+        <div className="logo-text">
+          <div className="text-5xl font-extrabold leading-tight tracking-wide">
+            <span style={{ color: '#5CB85C' }}>Livy&apos;s </span>
+            <span style={{ color: '#29ABE2' }}>Bunny</span>
+          </div>
+          <div className="text-4xl font-extrabold tracking-wide" style={{ color: '#F7941D' }}>
+            Rescue Adventure
+          </div>
+          <div className="text-lg font-medium mt-2" style={{ color: '#26C6DA' }}>
+            A Sight Word Learning Game
+          </div>
+        </div>
+      </div>
+
       <h2 className="text-2xl font-semibold text-center mb-6 text-gray-700">
         Choose Your Profile
       </h2>
@@ -86,7 +106,7 @@ export default function ProfilePicker({
 
             <button
               onClick={() => onSelectProfile(profile.id)}
-              className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+              className="w-full btn-play py-3 px-4 rounded-lg transition-colors font-bold text-white"
             >
               Play
             </button>
@@ -99,7 +119,7 @@ export default function ProfilePicker({
         <div className="text-center">
           <button
             onClick={() => setShowCreateForm(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-xl text-lg transition-colors shadow-lg"
+            className="btn-secondary py-4 px-8 rounded-xl text-lg transition-colors shadow-lg font-bold text-white"
           >
             + Create New Profile
           </button>
@@ -164,7 +184,7 @@ export default function ProfilePicker({
               <button
                 onClick={handleCreate}
                 disabled={!newNickname.trim()}
-                className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                className="flex-1 btn-primary py-3 px-4 rounded-lg transition-colors font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create
               </button>

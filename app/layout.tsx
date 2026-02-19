@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Livy\'s Bunny Rescue Adventure - Sight Words Learning Game',
-  description: 'A wholesome literacy game for kids (Pre-K to Grade 8). Rescue bunnies by spelling sight words!',
+  title: "Livy's Bunny Rescue Adventure – A Sight Word Learning Game",
+  description: 'Help Livy rescue her bunny friends by spelling sight words! A fun learning game for kids Pre-K through Grade 3.',
 }
 
 export default function RootLayout({
