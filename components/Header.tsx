@@ -1,5 +1,7 @@
 'use client';
 
+import { LivyCharacter } from '@/components/characters';
+
 interface HeaderProps {
   themeName: string;
   bunniesRemaining: number;
@@ -21,9 +23,12 @@ export default function Header({
     <header className="bg-white shadow-md p-4 mb-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-2xl font-bold text-gray-800">
-            🐰 Livy&apos;s Bunny Rescue Adventure
-          </h1>
+          <div className="flex items-center gap-2">
+            <LivyCharacter pose="waving" size="small" />
+            <h1 className="text-2xl font-bold text-gray-800">
+              Livy&apos;s Bunny Rescue Adventure
+            </h1>
+          </div>
           <button
             onClick={onSettings}
             aria-label="Settings"

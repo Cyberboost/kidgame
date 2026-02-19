@@ -2,6 +2,7 @@
 
 import { Profile, Grade, DifficultyTier } from '@/core/types';
 import { useState } from 'react';
+import { LivyCharacter } from '@/components/characters';
 
 interface ProfilePickerProps {
   profiles: Profile[];
@@ -47,8 +48,13 @@ export default function ProfilePicker({
 
   return (
     <div className="max-w-4xl mx-auto p-4">
+      {/* Livy Character Header */}
+      <div className="flex justify-center mb-4">
+        <LivyCharacter pose="waving" size="hero" animated />
+      </div>
+      
       <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-        🐰 Livy&apos;s Bunny Rescue Adventure
+        Livy&apos;s Bunny Rescue Adventure
       </h1>
       <h2 className="text-2xl font-semibold text-center mb-6 text-gray-700">
         Choose Your Profile
