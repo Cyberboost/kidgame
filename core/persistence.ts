@@ -16,7 +16,7 @@ interface BunniesDB extends DBSchema {
   };
 }
 
-const DB_NAME = 'livys-bunny-rescue-adventure-db';
+const DB_NAME = 'save-the-bunnies-db';
 const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase<BunniesDB>> | null = null;
