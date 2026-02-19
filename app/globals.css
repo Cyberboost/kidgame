@@ -44,7 +44,8 @@ body {
   color: black;
 }
 
-/* Dyslexia-friendly font */
+/* Dyslexia-friendly font - self-hosted fallback to external CDN */
+/* Note: External font loads only when user enables dyslexic font option */
 @font-face {
   font-family: 'OpenDyslexic';
   src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/open-dyslexic-regular.woff2') format('woff2');

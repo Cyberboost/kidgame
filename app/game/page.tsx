@@ -35,13 +35,7 @@ function GameContent() {
   const [loading, setLoading] = useState(true);
   const [turnNumber, setTurnNumber] = useState(0);
 
-  useEffect(() => {
-    if (profileId) {
-      loadGame();
-    }
-  }, [profileId]);
-
-  const loadGame = async () => {
+  const loadGame = useCallback(async () => {
     if (!profileId) {
       router.push('/');
       return;
@@ -128,7 +122,13 @@ function GameContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId, router]);
+
+  useEffect(() => {
+    if (profileId) {
+      loadGame();
+    }
+  }, [profileId, loadGame]);
 
   const handleTileClick = useCallback((row: number, col: number) => {
     if (!session || !profile || !reviewBasket) return;

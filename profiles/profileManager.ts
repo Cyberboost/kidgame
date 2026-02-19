@@ -7,7 +7,7 @@ export function createProfile(
   preferredDifficulty?: DifficultyTier
 ): Profile {
   return {
-    id: `profile-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: `profile-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
     nickname,
     defaultGrade: grade,
     preferredDifficulty,
@@ -68,9 +68,10 @@ export function updateProfileStats(
   }
 
   // Update rolling accuracy
-  const totalWords = profile.stats.totalWordsSpelled;
-  if (totalWords > 0) {
-    profile.stats.accuracy = ((profile.stats.accuracy * (totalWords - wordsSpelled)) + accuracy) / totalWords;
+  const prevTotalWords = profile.stats.totalWordsSpelled;
+  if (prevTotalWords > 0) {
+    const totalWords = prevTotalWords + wordsSpelled;
+    profile.stats.accuracy = ((profile.stats.accuracy * prevTotalWords) + (accuracy * wordsSpelled)) / totalWords;
   } else {
     profile.stats.accuracy = accuracy;
   }

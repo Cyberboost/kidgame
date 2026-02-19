@@ -193,12 +193,12 @@ This game is designed with children's privacy in mind:
 - ✅ **No accounts or authentication**
 - ✅ **No email collection**
 - ✅ **No analytics or tracking**
-- ✅ **No external network calls**
+- ✅ **No external network calls** (except OpenDyslexic font when enabled)
 - ✅ **No chat or user-generated content**
 - ✅ **Local-only data storage** (IndexedDB)
 - ✅ **Data export/reset functionality**
 
-All data is stored locally in the user's browser. Parents can export or reset data at any time via the Settings menu.
+**Note on External Resources**: The dyslexia-friendly font option loads OpenDyslexic from a CDN only when explicitly enabled by the user. All other functionality works completely offline.
 
 ## 🎓 Educational Design
 
