@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Profile, GameSession, GameSettings, TileState } from '@/core/types';
 import { getProfile, getSettings, saveSettings, saveSession, resetAllData, exportData } from '@/core/persistence';
@@ -18,7 +18,7 @@ import WordCard from '@/components/WordCard';
 import ActionBar from '@/components/ActionBar';
 import Header from '@/components/Header';
 import SettingsModal from '@/components/SettingsModal';
-import { LivyCharacter } from '@/components/characters';
+import { LivyCharacter, LivyPose } from '@/components/characters';
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -35,8 +35,22 @@ function GameContent() {
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [turnNumber, setTurnNumber] = useState(0);
-  const [livyPose, setLivyPose] = useState<'waving' | 'celebrating' | 'cheering' | 'thinking' | null>(null);
+  const [livyPose, setLivyPose] = useState<LivyPose | null>(null);
   const [showLivy, setShowLivy] = useState(false);
+  
+  // Refs to track timeouts for cleanup
+  const livyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (livyTimeoutRef.current) clearTimeout(livyTimeoutRef.current);
+      if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
+      if (navigationTimeoutRef.current) clearTimeout(navigationTimeoutRef.current);
+    };
+  }, []);
 
   const loadGame = useCallback(async () => {
     if (!profileId) {
@@ -175,7 +189,7 @@ function GameContent() {
         }
 
         if (validation.turnEnded) {
-          setTimeout(() => handleFocusZeroEndTurn(), 1500);
+          livyTimeoutRef.current = setTimeout(() => handleFocusZeroEndTurn(), 1500);
         }
       }
 
@@ -210,7 +224,7 @@ function GameContent() {
     });
     setMessage('Garden Focus reached zero. Moving to next word.');
     
-    setTimeout(() => setMessage(''), 2000);
+    messageTimeoutRef.current = setTimeout(() => setMessage(''), 2000);
   }, [session, reviewBasket, wordSelector, turnNumber, profile]);
 
   const handleUndo = useCallback(() => {
@@ -308,7 +322,7 @@ function GameContent() {
         profile.wordPerformance = performanceTracker.getAllPerformances();
         await saveProfileData(profile);
 
-        setTimeout(() => {
+        navigationTimeoutRef.current = setTimeout(() => {
           setShowLivy(false);
           router.push('/');
         }, 3000);
@@ -318,7 +332,7 @@ function GameContent() {
       // Show cheering Livy for correct word
       setLivyPose('cheering');
       setShowLivy(true);
-      setTimeout(() => setShowLivy(false), 1500);
+      livyTimeoutRef.current = setTimeout(() => setShowLivy(false), 1500);
 
       // Move to next word
       gameEngine.resetTurn(session);
@@ -337,7 +351,7 @@ function GameContent() {
         selectedTiles: [],
       });
       setMessage(result.message);
-      setTimeout(() => setMessage(''), 2000);
+      messageTimeoutRef.current = setTimeout(() => setMessage(''), 2000);
     } else {
       // Incorrect submission
       reviewBasket.add(session.currentWord);
@@ -355,7 +369,7 @@ function GameContent() {
       // Show thinking Livy for incorrect submission
       setLivyPose('thinking');
       setShowLivy(true);
-      setTimeout(() => setShowLivy(false), 2000);
+      livyTimeoutRef.current = setTimeout(() => setShowLivy(false), 2000);
 
       if (result.requireRetry) {
         // Keep same word, just reset selection
@@ -375,7 +389,7 @@ function GameContent() {
         setMessage(result.message);
       }
 
-      setTimeout(() => setMessage(''), 3000);
+      messageTimeoutRef.current = setTimeout(() => setMessage(''), 3000);
     }
   }, [session, profile, reviewBasket, wordSelector, performanceTracker, turnNumber, handleClear]);
 

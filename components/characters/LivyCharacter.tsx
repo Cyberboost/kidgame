@@ -1,17 +1,21 @@
 'use client';
 
+export type LivyPose = 'waving' | 'celebrating' | 'cheering' | 'thinking' | 'running';
+
 interface LivyCharacterProps {
-  pose?: 'waving' | 'celebrating' | 'cheering' | 'thinking' | 'running';
+  pose?: LivyPose;
   size?: 'small' | 'medium' | 'large' | 'hero';
   animated?: boolean;
   className?: string;
 }
 
+// Character size presets with consistent aspect ratio (~0.69)
+// Dimensions chosen to maintain character proportions across different UI contexts
 const SIZE_DIMENSIONS = {
-  small: { width: 45, height: 65 },
-  medium: { width: 90, height: 130 },
-  large: { width: 150, height: 215 },
-  hero: { width: 240, height: 345 },
+  small: { width: 45, height: 65 },    // HUD icons, inline badges
+  medium: { width: 90, height: 130 },  // Game cards, level nodes
+  large: { width: 150, height: 215 },  // Win/lose screens, modals
+  hero: { width: 240, height: 345 },   // Profile picker, landing page
 };
 
 export default function LivyCharacter({
@@ -41,7 +45,12 @@ export default function LivyCharacter({
   return (
     <div
       className={`${className} ${getAnimationClass()}`}
-      style={{ width: `${width}px`, height: `${height}px`, display: 'inline-block' }}
+      style={{ 
+        width: `${width}px`, 
+        height: `${height}px`, 
+        display: 'inline-block' 
+      }}
+      // Inline styles used for dynamic sizing based on prop - Tailwind can't generate arbitrary values at runtime
     >
       {pose === 'waving' && <WavingPose />}
       {pose === 'celebrating' && <CelebratingPose animated={animated} />}
