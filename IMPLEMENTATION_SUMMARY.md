@@ -1,4 +1,4 @@
-# Save the Bunnies: Backyard Edition - Implementation Summary
+# Livy's Bunny Rescue Adventure - Sight Words Learning Game - Implementation Summary
 
 ## Project Overview
 
