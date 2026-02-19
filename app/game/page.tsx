@@ -22,6 +22,9 @@ import ActionBar from '@/components/ActionBar';
 import Header from '@/components/Header';
 import SettingsModal from '@/components/SettingsModal';
 
+const TICK_INTERVAL_SECONDS = 0.1; // 100ms tick interval
+const WOBBLE_WARNING_SECONDS = 0.5; // Show wobble 500ms before shuffle
+
 function GameContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -205,10 +208,10 @@ function GameContent() {
     let ticks = 0;
     const interval = setInterval(() => {
       ticks++;
-      const elapsed = ticks * 0.1; // 100ms per tick
+      const elapsed = ticks * TICK_INTERVAL_SECONDS;
       
-      // Trigger wobble 500ms before shuffle
-      if (elapsed >= config.shuffleInterval - 0.5 && elapsed < config.shuffleInterval && !wobble) {
+      // Trigger wobble before shuffle
+      if (elapsed >= config.shuffleInterval - WOBBLE_WARNING_SECONDS && elapsed < config.shuffleInterval && !wobble) {
         setWobble(true);
       }
       
