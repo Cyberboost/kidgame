@@ -202,11 +202,13 @@ function GameContent() {
     
     if (!multiWordMode || !config.shuffleInterval) return;
     
+    let ticks = 0;
     const interval = setInterval(() => {
-      const elapsed = (Date.now() - lastShuffleTime) / 1000;
+      ticks++;
+      const elapsed = ticks * 0.1; // 100ms per tick
       
       // Trigger wobble 500ms before shuffle
-      if (elapsed >= config.shuffleInterval - 0.5 && !wobble) {
+      if (elapsed >= config.shuffleInterval - 0.5 && elapsed < config.shuffleInterval && !wobble) {
         setWobble(true);
       }
       
@@ -227,8 +229,9 @@ function GameContent() {
         });
         setLastShuffleTime(Date.now());
         setWobble(false);
+        ticks = 0; // Reset counter
       }
-    }, 100); // Check every 100ms for precision
+    }, 100);
     
     return () => clearInterval(interval);
   }, [session, lastShuffleTime, wobble, profile]);
@@ -417,16 +420,9 @@ function GameContent() {
     const config = DIFFICULTY_CONFIGS[session.difficulty];
     const multiWordMode = config.wordsPerRound && config.wordsPerRound > 1;
     
-    // In multi-word mode, check if word matches any target word
-    let matchedWord: string | null = null;
-    if (multiWordMode) {
-      const submittedWord = session.currentInput.toUpperCase();
-      matchedWord = targetWords.find(w => w.toUpperCase() === submittedWord) || null;
-    }
-    
     const result = gameEngine.submitWord(session, config);
 
-    if (result.correct || (multiWordMode && matchedWord)) {
+    if (result.correct) {
       // Mark selected tiles as cleared
       const newBoard = session.board.map(r => r.map(t => ({ ...t, selected: false })));
       session.selectedTiles.forEach(pos => {
@@ -458,33 +454,26 @@ function GameContent() {
       stats.turnsTaken++;
       
       // Multi-word mode: add to found words and trigger bunny animation
-      if (multiWordMode && matchedWord) {
-        const newFoundWords = [...foundWords, matchedWord];
-        setFoundWords(newFoundWords);
+      if (multiWordMode && result.wordCompleted) {
+        setFoundWords(prev => {
+          const newFoundWords = [...prev, result.wordCompleted!];
+          
+          // Check if all words found
+          if (newFoundWords.length >= session.targetWords.length) {
+            setMessage('🎉 All words found! Starting new round...');
+            setTimeout(() => {
+              resetRound();
+            }, 2000);
+          } else {
+            setMessage('✅ Word found! Keep going!');
+            setTimeout(() => setMessage(''), 1500);
+          }
+          
+          return newFoundWords;
+        });
         setBunnyRunnerTrigger(prev => prev + 1);
         
-        // Check if all words found
-        if (newFoundWords.length >= targetWords.length) {
-          setMessage('🎉 All words found! Starting new round...');
-          setTimeout(() => {
-            resetRound();
-          }, 2000);
-          
-          // Update session state
-          setSession({
-            ...session,
-            board: newBoard,
-            currentInput: '',
-            selectedTiles: [],
-            bunniesRescued: newBunniesRescued,
-            wordsSpelled: newWordsSpelled,
-            streak: newStreak,
-            reviewBasket: reviewBasket.getAll(),
-          });
-          return;
-        }
-        
-        // Continue to next word in the round
+        // Update session state
         setSession({
           ...session,
           board: newBoard,
@@ -495,8 +484,6 @@ function GameContent() {
           streak: newStreak,
           reviewBasket: reviewBasket.getAll(),
         });
-        setMessage('✅ Word found! Keep going!');
-        setTimeout(() => setMessage(''), 1500);
         return;
       }
 
@@ -579,7 +566,7 @@ function GameContent() {
 
       setTimeout(() => setMessage(''), 3000);
     }
-  }, [session, profile, reviewBasket, wordSelector, performanceTracker, turnNumber, handleClear, targetWords, foundWords, resetRound, router]);
+  }, [session, profile, reviewBasket, wordSelector, performanceTracker, turnNumber, handleClear, resetRound, router]);
 
   const handleSettingsChange = async (newSettings: GameSettings) => {
     setSettings(newSettings);

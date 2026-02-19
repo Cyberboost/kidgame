@@ -14,7 +14,7 @@ export default function CountdownTimer({ timeRemaining, totalTime, onTimeUp }: C
   const isCritical = timeRemaining <= 3;
 
   useEffect(() => {
-    if (timeRemaining <= 0) {
+    if (timeRemaining === 0) {
       onTimeUp();
     }
   }, [timeRemaining, onTimeUp]);

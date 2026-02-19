@@ -29,9 +29,11 @@ export default function BunnyRunner({ trigger }: BunnyRunnerProps) {
       setBunnies(prev => [...prev, newBunny]);
       
       // Remove bunny after animation completes
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setBunnies(prev => prev.filter(b => b.id !== newBunny.id));
       }, (newBunny.duration + newBunny.delay / 1000) * 1000);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [trigger]);
 

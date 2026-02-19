@@ -184,6 +184,7 @@ export class GameEngine {
    * Check if all words in the current round have been found
    */
   checkRoundComplete(session: GameSession): boolean {
+    if (!session.targetWords || session.targetWords.length === 0) return false;
     return session.foundWords.length >= session.targetWords.length;
   }
 
