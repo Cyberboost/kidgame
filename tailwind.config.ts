@@ -9,6 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        livy: {
+          green: '#5CB85C',
+          blue: '#29ABE2',
+          orange: '#F7941D',
+          teal: '#26C6DA',
+          gray: '#E8E8E8',
+          darkgray: '#2D2D2D',
+          pink: '#FFB6C1',
+        },
         bunny: {
           50: '#fef7ee',
           100: '#fdecd7',
@@ -35,7 +44,23 @@ const config: Config = {
         },
       },
       fontFamily: {
+        game: ['Nunito', 'Fredoka One', 'system-ui', 'sans-serif'],
         dyslexic: ['OpenDyslexic', 'Comic Sans MS', 'sans-serif'],
+      },
+      animation: {
+        'livy-bob': 'livyBob 2s ease-in-out infinite',
+        'livy-wave': 'livyWave 1s ease-in-out infinite',
+      },
+      keyframes: {
+        livyBob: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+        livyWave: {
+          '0%, 100%': { transform: 'rotate(0deg)', transformOrigin: 'bottom center' },
+          '25%': { transform: 'rotate(15deg)', transformOrigin: 'bottom center' },
+          '75%': { transform: 'rotate(-5deg)', transformOrigin: 'bottom center' },
+        },
       },
     },
   },
