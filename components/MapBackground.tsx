@@ -68,20 +68,23 @@ export default function MapBackground({ currentZone }: MapBackgroundProps) {
       )}
 
       {/* Foreground decorative flowers */}
-      {flowers.map((i) => (
-        <div
-          key={`flower-${i}`}
-          className="absolute text-2xl"
-          style={{
-            bottom: `${5 + Math.random() * 20}%`,
-            left: `${i * 10}%`,
-            animation: `gentle-sway ${3 + Math.random() * 2}s infinite ease-in-out`,
-            animationDelay: `${Math.random()}s`,
-          }}
-        >
-          {['🌸', '🌼', '🌺', '🌻'][i % 4]}
-        </div>
-      ))}
+      {flowers.map((i) => {
+        const flowerEmojis = ['🌸', '🌼', '🌺', '🌻'];
+        return (
+          <div
+            key={`flower-${i}`}
+            className="absolute text-2xl"
+            style={{
+              bottom: `${5 + Math.random() * 20}%`,
+              left: `${i * 10}%`,
+              animation: `gentle-sway ${3 + Math.random() * 2}s infinite ease-in-out`,
+              animationDelay: `${Math.random()}s`,
+            }}
+          >
+            {flowerEmojis[i % flowerEmojis.length]}
+          </div>
+        );
+      })}
 
       {/* Floating particles */}
       {Array.from({ length: 5 }).map((_, i) => (
