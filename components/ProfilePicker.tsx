@@ -13,6 +13,13 @@ interface ProfilePickerProps {
 const GRADES: Grade[] = ['PreK', 'K', '1', '2', '3', '4', '5', '6', '7', '8'];
 const DIFFICULTIES: DifficultyTier[] = ['Sprout', 'Explorer', 'Ranger', 'Guardian'];
 
+const DIFFICULTY_LABELS: Record<DifficultyTier, string> = {
+  Sprout: 'Sprout – Pre-K/K: 4×4 grid, gentle mode with hints',
+  Explorer: 'Explorer – Grades 1–2: 5×5 grid, limited hints',
+  Ranger: 'Ranger – Grades 3–5: 6×6 grid, hints disabled on mistakes',
+  Guardian: 'Guardian – Grades 6–8: 7×7 grid, tiles lock on errors',
+};
+
 export default function ProfilePicker({
   profiles,
   onSelectProfile,
@@ -125,7 +132,7 @@ export default function ProfilePicker({
               <select
                 value={newGrade}
                 onChange={(e) => setNewGrade(e.target.value as Grade)}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-gray-800"
               >
                 {GRADES.map((grade) => (
                   <option key={grade} value={grade}>
@@ -142,12 +149,12 @@ export default function ProfilePicker({
               <select
                 value={newDifficulty}
                 onChange={(e) => setNewDifficulty(e.target.value as DifficultyTier | '')}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-gray-800"
               >
                 <option value="">Auto (based on grade)</option>
                 {DIFFICULTIES.map((diff) => (
                   <option key={diff} value={diff}>
-                    {diff}
+                    {DIFFICULTY_LABELS[diff]}
                   </option>
                 ))}
               </select>
