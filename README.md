@@ -1,4 +1,4 @@
-# Save the Bunnies: Backyard Edition 🐰
+# Livy's Bunny Rescue Adventure - Sight Words Learning Game 🐰
 
 A wholesome, mobile-first literacy game for kids (Pre-K to Grade 8). Players rescue bunnies trapped under letter tiles by spelling sight words. Built with privacy and safety as top priorities—no accounts, no tracking, no external calls.
 

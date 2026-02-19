@@ -41,7 +41,7 @@ export default function ProfilePicker({
   return (
     <div className="max-w-4xl mx-auto p-4">
       <h1 className="text-4xl font-bold text-center mb-8 text-gray-800">
-        🐰 Save the Bunnies
+        🐰 Livy&apos;s Bunny Rescue Adventure
       </h1>
       <h2 className="text-2xl font-semibold text-center mb-6 text-gray-700">
         Choose Your Profile

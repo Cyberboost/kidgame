@@ -1,4 +1,4 @@
-// Core type definitions for Save the Bunnies game
+// Core type definitions for Livy's Bunny Rescue Adventure game
 
 export type Grade = 'PreK' | 'K' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8';
 
