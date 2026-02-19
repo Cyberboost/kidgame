@@ -18,6 +18,8 @@ import WordCard from '@/components/WordCard';
 import ActionBar from '@/components/ActionBar';
 import Header from '@/components/Header';
 import SettingsModal from '@/components/SettingsModal';
+import BunnyRunner from '@/components/BunnyRunner';
+import { LivyCharacter, BuddyCharacter } from '@/components/characters';
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -34,6 +36,9 @@ function GameContent() {
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [turnNumber, setTurnNumber] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [showWrongAnswer, setShowWrongAnswer] = useState(false);
+  const [runBunny, setRunBunny] = useState(false);
 
   const loadGame = useCallback(async () => {
     if (!profileId) {
@@ -250,6 +255,10 @@ function GameContent() {
     const result = gameEngine.submitWord(session, config);
 
     if (result.correct) {
+      // Show celebration and run bunny
+      setShowCelebration(true);
+      setRunBunny(true);
+      
       // Mark selected tiles as cleared
       const newBoard = session.board.map(r => r.map(t => ({ ...t, selected: false })));
       session.selectedTiles.forEach(pos => {
@@ -324,8 +333,18 @@ function GameContent() {
         selectedTiles: [],
       });
       setMessage(result.message);
-      setTimeout(() => setMessage(''), 2000);
+      
+      // Hide celebration after animation
+      setTimeout(() => {
+        setShowCelebration(false);
+        setRunBunny(false);
+        setMessage('');
+      }, 2000);
     } else {
+      // Show wrong answer indicator
+      setShowWrongAnswer(true);
+      setTimeout(() => setShowWrongAnswer(false), 1500);
+      
       // Incorrect submission
       reviewBasket.add(session.currentWord);
       
@@ -397,8 +416,9 @@ function GameContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-300 to-grass-200">
-        <div className="text-2xl font-bold text-gray-800">Loading game...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-300 to-grass-200">
+        <LivyCharacter pose="thinking" size="large" animated />
+        <div className="text-2xl font-bold text-gray-800 mt-4">Loading game...</div>
       </div>
     );
   }
@@ -457,6 +477,41 @@ function GameContent() {
           disabled={session.completed}
         />
       </div>
+
+      {/* Bunny Runner - runs when word is correct */}
+      <BunnyRunner active={runBunny} />
+
+      {/* Celebration overlay - Livy cheering */}
+      {showCelebration && (
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-40">
+          <div className="animate-[livyCelebrate_0.8s_ease-out]">
+            <LivyCharacter pose="cheering" size="large" />
+          </div>
+        </div>
+      )}
+
+      {/* Wrong answer indicator - Livy thinking */}
+      {showWrongAnswer && (
+        <div className="fixed top-20 right-4 z-40">
+          <LivyCharacter pose="thinking" size="small" />
+        </div>
+      )}
+
+      {/* Game completed celebration */}
+      {session.completed && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md text-center shadow-2xl">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">🎉 You rescued Buddy! 🎉</h2>
+            <div className="flex justify-center gap-8 mb-6">
+              <LivyCharacter pose="celebrating" size="large" animated />
+              <BuddyCharacter pose="rescued" size="large" animated />
+            </div>
+            <p className="text-xl text-gray-700 mb-2">All bunnies rescued!</p>
+            <p className="text-lg text-gray-600">Words spelled: {session.wordsSpelled}</p>
+            <p className="text-lg text-gray-600">Bunnies saved: {session.bunniesRescued}</p>
+          </div>
+        </div>
+      )}
 
       <SettingsModal
         isOpen={showSettings}
