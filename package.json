@@ -11,17 +11,18 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "idb": "^8.0.0",
     "next": "^15.0.8",
+    "phaser": "^3.90.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "idb": "^8.0.0"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.0.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "@testing-library/react": "^14.0.0",
-    "@testing-library/jest-dom": "^6.1.5",
     "autoprefixer": "^10.4.16",
     "eslint": "^9",
     "eslint-config-next": "^15.0.0",
