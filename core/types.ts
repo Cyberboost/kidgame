@@ -65,6 +65,38 @@ export interface Profile {
   };
   customWords: string[];
   wordPerformance: { [word: string]: WordPerformance };
+  starPoints: number;
+  totalStarPointsEarned: number;
+  unlockedCostumes: string[];
+  equippedCostume: string | null;
+  equippedPet: string | null;
+  unlockedPets: string[];
+  unlockedEmotes: string[];
+  unlockedDances: string[];
+  characterCustomization: {
+    skinTone: string;
+    hairStyle: string;
+    hairColor: string;
+    accessories: string[];
+  };
+  achievements: {
+    [achievementId: string]: {
+      unlocked: boolean;
+      progress: number;
+      unlockedAt?: string;
+    };
+  };
+  dailyStreak: number;
+  lastPlayedDate: string;
+}
+
+export interface LevelProgress {
+  levelId: string;
+  completed: boolean;
+  bestTime: number;
+  starsEarned: number;
+  lettersFound: number;
+  secretsFound: number;
 }
 
 export interface GameSession {

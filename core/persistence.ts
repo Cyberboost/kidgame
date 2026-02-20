@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { Profile, GameSession, GameSettings } from '@/core/types';
+import { Profile, GameSession, GameSettings, LevelProgress } from '@/core/types';
 
 interface BunniesDB extends DBSchema {
   profiles: {
@@ -14,17 +14,26 @@ interface BunniesDB extends DBSchema {
     key: string;
     value: GameSettings;
   };
+  platformerProgress: {
+    key: string;
+    value: LevelProgress;
+  };
+  starPointsLog: {
+    key: number;
+    value: { timestamp: number; amount: number; reason: string };
+    autoIncrement: true;
+  };
 }
 
 const DB_NAME = 'save-the-bunnies-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<BunniesDB>> | null = null;
 
 async function getDB(): Promise<IDBPDatabase<BunniesDB>> {
   if (!dbPromise) {
     dbPromise = openDB<BunniesDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
         // Create object stores
         if (!db.objectStoreNames.contains('profiles')) {
           db.createObjectStore('profiles', { keyPath: 'id' });
@@ -34,6 +43,15 @@ async function getDB(): Promise<IDBPDatabase<BunniesDB>> {
         }
         if (!db.objectStoreNames.contains('settings')) {
           db.createObjectStore('settings');
+        }
+        // Version 2 additions
+        if (oldVersion < 2) {
+          if (!db.objectStoreNames.contains('platformerProgress')) {
+            db.createObjectStore('platformerProgress', { keyPath: 'levelId' });
+          }
+          if (!db.objectStoreNames.contains('starPointsLog')) {
+            db.createObjectStore('starPointsLog', { autoIncrement: true });
+          }
         }
       },
     });
@@ -109,6 +127,22 @@ export async function exportData(): Promise<string> {
     settings,
     exportDate: new Date().toISOString(),
   }, null, 2);
+}
+
+// Level progress operations
+export async function saveLevelProgress(progress: LevelProgress): Promise<void> {
+  const db = await getDB();
+  await db.put('platformerProgress', progress);
+}
+
+export async function getLevelProgress(levelId: string): Promise<LevelProgress | undefined> {
+  const db = await getDB();
+  return db.get('platformerProgress', levelId);
+}
+
+export async function getAllLevelProgress(): Promise<LevelProgress[]> {
+  const db = await getDB();
+  return db.getAll('platformerProgress');
 }
 
 // Default settings

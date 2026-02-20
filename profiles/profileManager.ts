@@ -24,6 +24,23 @@ export function createProfile(
     wordLists: {},
     customWords: [],
     wordPerformance: {},
+    starPoints: 0,
+    totalStarPointsEarned: 0,
+    unlockedCostumes: ['green-dress', 'casual-tshirt'],
+    equippedCostume: 'green-dress',
+    equippedPet: null,
+    unlockedPets: [],
+    unlockedEmotes: ['wave', 'celebrate', 'flex', 'heart'],
+    unlockedDances: ['jump-for-joy'],
+    characterCustomization: {
+      skinTone: 'medium',
+      hairStyle: 'ponytail',
+      hairColor: 'blue-cyan',
+      accessories: [],
+    },
+    achievements: {},
+    dailyStreak: 0,
+    lastPlayedDate: '',
   };
 }
 
@@ -88,4 +105,25 @@ export function unlockTheme(profile: Profile, themeId: string): boolean {
 export function addCustomWords(profile: Profile, words: string[]): void {
   const newWords = words.filter(w => !profile.customWords.includes(w.toUpperCase()));
   profile.customWords.push(...newWords.map(w => w.toUpperCase()));
+}
+
+/**
+ * Updates the daily streak for the profile based on today's date.
+ * Increments if played yesterday, resets to 1 if gap, skips if already played today.
+ * Mutates the profile in memory — caller must persist with saveProfileData().
+ */
+export function updateDailyStreak(profile: Profile): void {
+  const today = new Date().toISOString().split('T')[0];
+  if (profile.lastPlayedDate === today) return;
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  if (profile.lastPlayedDate === yesterdayStr) {
+    profile.dailyStreak++;
+  } else {
+    profile.dailyStreak = 1;
+  }
+  profile.lastPlayedDate = today;
 }
