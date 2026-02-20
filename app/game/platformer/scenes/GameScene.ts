@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import type { Profile } from '@/core/types';
 import { getComboMultiplier, getComboLabel, progressAchievement, awardPoints } from '@/core/starPointsManager';
+import { saveLevelProgress } from '@/core/persistence';
+import { getWordListForGrade } from '@/words/starterLists';
 
 interface GameSceneData {
   profile: Profile;
@@ -10,22 +12,26 @@ interface GameSceneData {
 
 interface LevelData {
   id: string;
-  word: string;
+  word: string; // set dynamically from grade word list at runtime
   groundSegments: { x: number; width: number }[];
   platforms: { x: number; y: number; width: number }[];
   breakables: { x: number; y: number; type: 'crate' | 'stone' | 'question' }[];
-  letterPositions: { x: number; y: number }[];
+  // letterPositions are generated dynamically from word length
   bunnyCages: { x: number; y: number }[];
   powerUps: { x: number; y: number; type: string }[];
   goalX: number;
   levelWidth: number;
   parTime: number;
+  // Number of letter slots available (max word length this template supports)
+  maxLetters: number;
 }
 
-const LEVELS: LevelData[] = [
+// Level templates — word is replaced at runtime from the player's grade word list.
+// letterPositions are generated dynamically based on actual word length.
+const LEVEL_TEMPLATES: LevelData[] = [
   {
     id: 'level-1',
-    word: 'CAT',
+    word: 'CAT', // fallback; overridden at runtime
     groundSegments: [{ x: 0, width: 1600 }],
     platforms: [
       { x: 300, y: 350, width: 96 },
@@ -36,16 +42,12 @@ const LEVELS: LevelData[] = [
       { x: 400, y: 320, type: 'question' },
       { x: 600, y: 270, type: 'crate' },
     ],
-    letterPositions: [
-      { x: 200, y: 420 },
-      { x: 500, y: 265 },
-      { x: 900, y: 420 },
-    ],
     bunnyCages: [{ x: 1100, y: 430 }],
     powerUps: [{ x: 750, y: 270, type: 'star-power' }],
     goalX: 1450,
     levelWidth: 1600,
     parTime: 60,
+    maxLetters: 4,
   },
   {
     id: 'level-2',
@@ -64,12 +66,6 @@ const LEVELS: LevelData[] = [
       { x: 750, y: 300, type: 'stone' },
       { x: 950, y: 230, type: 'crate' },
     ],
-    letterPositions: [
-      { x: 150, y: 420 },
-      { x: 450, y: 255 },
-      { x: 750, y: 265 },
-      { x: 1100, y: 420 },
-    ],
     bunnyCages: [
       { x: 600, y: 430 },
       { x: 1400, y: 430 },
@@ -81,6 +77,7 @@ const LEVELS: LevelData[] = [
     goalX: 1850,
     levelWidth: 2000,
     parTime: 90,
+    maxLetters: 5,
   },
   {
     id: 'level-3',
@@ -103,12 +100,6 @@ const LEVELS: LevelData[] = [
       { x: 1100, y: 210, type: 'stone' },
       { x: 1400, y: 170, type: 'question' },
     ],
-    letterPositions: [
-      { x: 200, y: 420 },
-      { x: 600, y: 185 },
-      { x: 1000, y: 205 },
-      { x: 1600, y: 420 },
-    ],
     bunnyCages: [
       { x: 800, y: 430 },
       { x: 1200, y: 430 },
@@ -122,6 +113,7 @@ const LEVELS: LevelData[] = [
     goalX: 2200,
     levelWidth: 2400,
     parTime: 120,
+    maxLetters: 6,
   },
 ];
 
@@ -162,6 +154,9 @@ export class GameScene extends Phaser.Scene {
   private levelCompleteTriggered: boolean = false;
   private blocksBrokenSession: number = 0;
   private newAchievements: string[] = [];
+  /** Words picked from the profile's grade list for this play session */
+  private sessionWords: string[] = [];
+  private isRespawning: boolean = false;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -170,6 +165,19 @@ export class GameScene extends Phaser.Scene {
   init(data: GameSceneData) {
     this.sceneData = data;
     this.currentLevelIndex = 0;
+    this.lives = 3;
+    // Pick grade-appropriate words for this session
+    const profile = data.profile;
+    const allWords = getWordListForGrade(profile.defaultGrade, profile.customWords ?? []);
+    // Filter to words that fit platformer level templates (2–6 letters)
+    const suitable = allWords.filter(w => w.length >= 2 && w.length <= 6);
+    // Fisher-Yates shuffle for unbiased randomization
+    const shuffled = [...suitable];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    this.sessionWords = shuffled.length > 0 ? shuffled : ['CAT', 'PLAY', 'JUMP'];
   }
 
   create() {
@@ -183,8 +191,19 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Pick the word for a given level index from the session word list.
+   * Cycles through sessionWords so the game keeps going indefinitely.
+   */
+  private pickWord(levelIndex: number): string {
+    return this.sessionWords[levelIndex % this.sessionWords.length];
+  }
+
   private loadLevel(index: number) {
-    this.currentLevel = LEVELS[index % LEVELS.length];
+    const template = LEVEL_TEMPLATES[index % LEVEL_TEMPLATES.length];
+    // Deep-clone the template (including nested arrays) so runtime mutations don't affect the shared template
+    this.currentLevel = structuredClone(template);
+    this.currentLevel.word = this.pickWord(index);
     this.targetWord = this.currentLevel.word;
     this.collectedLetters = [];
     this.comboCount = 0;
@@ -192,6 +211,7 @@ export class GameScene extends Phaser.Scene {
     this.levelStartTime = this.time.now;
     this.bunniesRescued = 0;
     this.levelCompleteTriggered = false;
+    this.isRespawning = false;
 
     // Clear previous objects
     this.children.removeAll(true);
@@ -255,32 +275,43 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Letter collectibles
+    // Generate letter positions spread across the level based on word length.
+    // Each letter gets a position based on equal spacing across the level width.
     this.letterGroup = this.physics.add.group();
-    for (let i = 0; i < this.targetWord.length; i++) {
-      const pos = this.currentLevel.letterPositions[i] || {
-        x: 200 + i * 150,
-        y: 420,
-      };
+    const word = this.targetWord;
+    const spacing = Math.floor(this.currentLevel.levelWidth / (word.length + 1));
+    const platformYPositions = this.currentLevel.platforms.map(p => p.y - 32);
+    const hasPlatforms = platformYPositions.length > 0;
+    for (let i = 0; i < word.length; i++) {
+      const posX = spacing * (i + 1);
+      // Alternate between ground-level and platform-level positions
+      const posY = (i % 2 === 0 || !hasPlatforms)
+        ? 420
+        : platformYPositions[i % platformYPositions.length];
+
       const letter = this.letterGroup.create(
-        pos.x,
-        pos.y,
+        posX,
+        posY,
         'letter-collectible'
       ) as Phaser.Physics.Arcade.Image;
-      letter.setData('letter', this.targetWord[i]);
+      letter.setData('letter', word[i]);
       letter.setData('index', i);
       (letter.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
 
-      // Add letter label
-      this.add.text(pos.x, pos.y, this.targetWord[i], {
+      // Letter label — stored on the sprite so it can be destroyed together
+      const label = this.add.text(posX, posY, word[i], {
         fontSize: '14px',
         color: '#333333',
         fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(1);
+      letter.setData('label', label);
 
+      const bobDuration = 800 + Math.random() * 400;
+      // Bob both the sprite and the label together
       this.tweens.add({
-        targets: letter,
-        y: pos.y - 10,
-        duration: 800 + Math.random() * 400,
+        targets: [letter, label],
+        y: posY - 10,
+        duration: bobDuration,
         ease: 'Sine.easeInOut',
         yoyo: true,
         repeat: -1,
@@ -469,6 +500,9 @@ export class GameScene extends Phaser.Scene {
       score: this.starPointsEarned,
     });
 
+    // Destroy the label text along with the sprite
+    const label = letterSprite.getData('label') as Phaser.GameObjects.Text | null;
+    if (label) label.destroy();
     letterSprite.destroy();
 
     if (this.collectedLetters.length >= this.targetWord.length) {
@@ -501,6 +535,16 @@ export class GameScene extends Phaser.Scene {
       this.events.emit('achievementsUnlocked', [...this.newAchievements]);
       this.newAchievements = [];
     }
+
+    // Save level progress to IndexedDB (fire-and-forget)
+    saveLevelProgress({
+      levelId: this.currentLevel.id,
+      completed: true,
+      bestTime: elapsed,
+      starsEarned: this.calculateStars(speedBonus, this.bunniesRescued),
+      lettersFound: this.targetWord.length,
+      secretsFound: 0,
+    }).catch(() => { /* non-critical */ });
 
     this.spawnWordCompleteEffect();
     this.cameras.main.flash(500, 255, 255, 100);
@@ -551,6 +595,50 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Called when the player falls off the bottom of the world.
+   * Decrements lives; respawns at the start of the level or shows game over.
+   */
+  private playerDied() {
+    if (this.isRespawning || this.isInvincible || this.levelCompleteTriggered) return;
+    this.isRespawning = true;
+
+    this.lives--;
+    this.cameras.main.shake(300, 0.015);
+    this.cameras.main.flash(300, 255, 50, 50);
+
+    this.events.emit('livesChanged', this.lives);
+
+    if (this.lives <= 0) {
+      // Game over — go back to menu after a short delay
+      this.time.delayedCall(1000, () => {
+        this.scene.stop('UIScene');
+        this.sceneData.onBack();
+      });
+      return;
+    }
+
+    // Respawn with brief invincibility
+    this.isInvincible = true;
+    this.player.setPosition(80, 400);
+    (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
+    // Flash player during invincibility window
+    this.tweens.add({
+      targets: this.player,
+      alpha: 0.3,
+      duration: 100,
+      yoyo: true,
+      repeat: 10,
+      onComplete: () => {
+        this.player.setAlpha(1);
+        this.isInvincible = false;
+        this.isRespawning = false;
+      },
+    });
+  }
+
   private rescueBunny(
     _player: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     cageObj: Phaser.Types.Physics.Arcade.GameObjectWithBody
@@ -586,8 +674,6 @@ export class GameScene extends Phaser.Scene {
       this.powerUpTimer.destroy();
     }
 
-    this.events.emit('powerUpCollected', type);
-
     const durations: Record<string, number> = {
       'star-power': 10000,
       'rocket-boots': 20000,
@@ -596,6 +682,9 @@ export class GameScene extends Phaser.Scene {
       'time-freeze': 20000,
       'letter-magnet': 15000,
     };
+    const duration = durations[type] || 15000;
+
+    this.events.emit('powerUpCollected', { type, duration });
 
     if (type === 'star-power') {
       this.isInvincible = true;
@@ -603,7 +692,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.powerUpTimer = this.time.delayedCall(
-      durations[type] || 15000,
+      duration,
       () => {
         if (type === 'star-power') {
           this.isInvincible = false;
@@ -736,6 +825,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Calculate 1–3 stars based on level performance. */
+  private calculateStars(speedBonus: boolean, bunniesRescued: number): number {
+    if (speedBonus) return 3;
+    if (bunniesRescued > 0) return 2;
+    return 1;
+  }
+
   /**
    * Progress or unlock a single achievement on the profile.
    * Newly unlocked achievements are queued in newAchievements for display.
@@ -749,6 +845,12 @@ export class GameScene extends Phaser.Scene {
 
   update() {
     if (!this.player || !this.cursors) return;
+
+    // Fall detection — player fell off the bottom of the world
+    if (this.player.y > 560) {
+      this.playerDied();
+      return;
+    }
 
     const onGround = this.player.body.blocked.down;
     const body = this.player.body as Phaser.Physics.Arcade.Body;

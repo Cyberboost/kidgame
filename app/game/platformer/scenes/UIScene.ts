@@ -15,6 +15,9 @@ export class UIScene extends Phaser.Scene {
   private livesText!: Phaser.GameObjects.Text;
   private comboText!: Phaser.GameObjects.Text;
   private powerUpText!: Phaser.GameObjects.Text;
+  private powerUpBarBg!: Phaser.GameObjects.Rectangle;
+  private powerUpBar!: Phaser.GameObjects.Rectangle;
+  private powerUpBarTween: Phaser.Tweens.Tween | null = null;
   private wordSlots: Phaser.GameObjects.Text[] = [];
   private sceneData!: UISceneData;
   private collectedCount: number = 0;
@@ -87,6 +90,10 @@ export class UIScene extends Phaser.Scene {
       })
       .setOrigin(1, 0);
 
+    // Power-up timer bar (hidden until a power-up is active)
+    this.powerUpBarBg = this.add.rectangle(730, 52, 140, 8, 0x333333, 0.8).setOrigin(1, 0).setVisible(false);
+    this.powerUpBar = this.add.rectangle(661, 52, 140, 8, 0xce93d8).setOrigin(0, 0).setVisible(false);
+
     // Mobile touch controls
     this.createTouchControls();
 
@@ -122,7 +129,7 @@ export class UIScene extends Phaser.Scene {
       this.updateScore(score);
     });
 
-    gameScene.events.on('powerUpCollected', (type: string) => {
+    gameScene.events.on('powerUpCollected', (data: { type: string; duration: number }) => {
       const names: Record<string, string> = {
         'star-power': '⭐ Star Power',
         'rocket-boots': '🚀 Rocket Boots',
@@ -131,11 +138,33 @@ export class UIScene extends Phaser.Scene {
         'time-freeze': '⏰ Time Freeze',
         'letter-magnet': '🧲 Magnet',
       };
-      this.powerUpText.setText(names[type] || type);
+      this.powerUpText.setText(names[data.type] || data.type);
+      // Show and animate the countdown bar
+      this.powerUpBarBg.setVisible(true);
+      this.powerUpBar.setVisible(true).setScale(1, 1);
+      if (this.powerUpBarTween) this.powerUpBarTween.destroy();
+      if (data.duration > 0) {
+        this.powerUpBarTween = this.tweens.add({
+          targets: this.powerUpBar,
+          scaleX: 0,
+          duration: data.duration,
+          ease: 'Linear',
+        });
+      }
     });
 
     gameScene.events.on('powerUpExpired', () => {
       this.powerUpText.setText('');
+      this.powerUpBarBg.setVisible(false);
+      this.powerUpBar.setVisible(false);
+      if (this.powerUpBarTween) {
+        this.powerUpBarTween.destroy();
+        this.powerUpBarTween = null;
+      }
+    });
+
+    gameScene.events.on('livesChanged', (lives: number) => {
+      this.updateLives(lives);
     });
 
     gameScene.events.on(
@@ -148,6 +177,12 @@ export class UIScene extends Phaser.Scene {
         this.scoreText.setText('⭐ 0');
         this.comboText.setText('');
         this.powerUpText.setText('');
+        this.powerUpBarBg.setVisible(false);
+        this.powerUpBar.setVisible(false);
+        if (this.powerUpBarTween) {
+          this.powerUpBarTween.destroy();
+          this.powerUpBarTween = null;
+        }
       }
     );
 
