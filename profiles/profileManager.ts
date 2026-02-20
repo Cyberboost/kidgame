@@ -24,6 +24,23 @@ export function createProfile(
     wordLists: {},
     customWords: [],
     wordPerformance: {},
+    starPoints: 0,
+    totalStarPointsEarned: 0,
+    unlockedCostumes: ['green-dress', 'casual-tshirt'],
+    equippedCostume: 'green-dress',
+    equippedPet: null,
+    unlockedPets: [],
+    unlockedEmotes: ['wave', 'celebrate', 'flex', 'heart'],
+    unlockedDances: ['jump-for-joy'],
+    characterCustomization: {
+      skinTone: 'medium',
+      hairStyle: 'ponytail',
+      hairColor: 'blue-cyan',
+      accessories: [],
+    },
+    achievements: {},
+    dailyStreak: 0,
+    lastPlayedDate: '',
   };
 }
 

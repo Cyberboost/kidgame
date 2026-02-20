@@ -1,0 +1,43 @@
+import type { Profile } from '@/core/types';
+
+export function awardPoints(profile: Profile, amount: number): void {
+  profile.starPoints += amount;
+  profile.totalStarPointsEarned += amount;
+}
+
+export function spendPoints(profile: Profile, amount: number): boolean {
+  if (profile.starPoints < amount) return false;
+  profile.starPoints -= amount;
+  return true;
+}
+
+export function getComboMultiplier(comboCount: number): number {
+  if (comboCount >= 15) return 10;
+  if (comboCount >= 10) return 5;
+  if (comboCount >= 5) return 3;
+  if (comboCount >= 2) return 2;
+  return 1;
+}
+
+export function getComboLabel(comboCount: number): string {
+  if (comboCount >= 15) return '💥 ON FIRE!';
+  if (comboCount >= 10) return '🌈 AMAZING!';
+  if (comboCount >= 5) return '✨ NICE!';
+  return '🔥 Combo!';
+}
+
+export function calculateLevelReward(
+  lettersCollected: number,
+  wordComplete: boolean,
+  speedBonus: boolean,
+  perfectRun: boolean,
+  bunniesRescued: number,
+  comboMultiplier: number
+): number {
+  let points = lettersCollected * 10 * comboMultiplier;
+  if (wordComplete) points += 50;
+  if (speedBonus) points += 25;
+  if (perfectRun) points += 40;
+  points += bunniesRescued * 30;
+  return Math.round(points);
+}

@@ -39,6 +39,10 @@ export default function Home() {
     router.push(`/game?profile=${profileId}`);
   };
 
+  const handleSelectPlatformer = (profileId: string) => {
+    router.push(`/game?profile=${profileId}&mode=platformer`);
+  };
+
   const handleCreateProfile = async (
     nickname: string,
     grade: Grade,
@@ -72,6 +76,22 @@ export default function Home() {
         onCreateProfile={handleCreateProfile}
         onDeleteProfile={handleDeleteProfile}
       />
+      {profiles.length > 0 && (
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <p className="text-gray-700 font-semibold">🎮 New! Try the Platformer:</p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            {profiles.map(p => (
+              <button
+                key={p.id}
+                onClick={() => handleSelectPlatformer(p.id)}
+                className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold shadow transition-colors"
+              >
+                🚀 {p.nickname} — Play Platformer!
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

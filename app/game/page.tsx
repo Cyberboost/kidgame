@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Profile, GameSession, GameSettings, TileState } from '@/core/types';
 import { getProfile, getSettings, saveSettings, saveSession, resetAllData, exportData } from '@/core/persistence';
@@ -20,10 +21,13 @@ import Header from '@/components/Header';
 import SettingsModal from '@/components/SettingsModal';
 import { LivyCharacter, LivyPose } from '@/components/characters';
 
+const PhaserGame = dynamic(() => import('./platformer/PhaserGame'), { ssr: false });
+
 function GameContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const profileId = searchParams.get('profile');
+  const mode = searchParams.get('mode');
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<GameSession | null>(null);
@@ -433,6 +437,19 @@ function GameContent() {
         <LivyCharacter pose="thinking" size="large" animated={true} />
         <div className="text-2xl font-bold text-gray-800 mt-4">Loading game...</div>
       </div>
+    );
+  }
+
+  // Platformer mode
+  if (mode === 'platformer' && profile) {
+    return (
+      <PhaserGame
+        profile={profile}
+        onGameComplete={(pts) => {
+          router.push(`/?earned=${pts}`);
+        }}
+        onBack={() => router.push('/')}
+      />
     );
   }
 
