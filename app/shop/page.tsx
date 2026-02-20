@@ -62,6 +62,12 @@ function ShopContent() {
           <div className="flex items-center gap-4">
             <span className="text-xl font-bold text-yellow-600">⭐ {profile.starPoints}</span>
             <button
+              onClick={() => router.push(`/profile?id=${profileId}`)}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              👤 Profile
+            </button>
+            <button
               onClick={() => router.back()}
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
             >

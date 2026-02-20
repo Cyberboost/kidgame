@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { Profile } from '@/core/types';
-import { getComboMultiplier, getComboLabel } from '@/core/starPointsManager';
+import { getComboMultiplier, getComboLabel, progressAchievement, awardPoints } from '@/core/starPointsManager';
 
 interface GameSceneData {
   profile: Profile;
@@ -160,6 +160,8 @@ export class GameScene extends Phaser.Scene {
   private coyoteTime: number = 0;
   private wasOnGround: boolean = false;
   private levelCompleteTriggered: boolean = false;
+  private blocksBrokenSession: number = 0;
+  private newAchievements: string[] = [];
 
   constructor() {
     super({ key: 'GameScene' });
@@ -419,6 +421,9 @@ export class GameScene extends Phaser.Scene {
         }
         this.breakableGroup.remove(blockSprite, true, true);
         this.events.emit('blockBroken');
+        this.blocksBrokenSession++;
+        // Achievement: Breaker (first block)
+        this.checkAchievement('breaker', 1, 1);
       }
     }
   }
@@ -450,6 +455,12 @@ export class GameScene extends Phaser.Scene {
     this.showFloatingText(letterSprite.x, letterSprite.y - 20, `+${points} ⭐`, 0xffffff);
     this.spawnCollectParticles(letterSprite.x, letterSprite.y);
 
+    // Combo achievements
+    if (this.comboCount >= 5) this.checkAchievement('combo-king', this.comboCount, 5);
+    if (this.comboCount >= 10) this.checkAchievement('on-fire', this.comboCount, 10);
+    // Hot-streak (3 letters in a row)
+    if (this.comboCount >= 3) this.checkAchievement('hot-streak', this.comboCount, 3);
+
     this.events.emit('letterCollected', {
       letter,
       collectedCount: this.collectedLetters.length,
@@ -475,6 +486,21 @@ export class GameScene extends Phaser.Scene {
     this.starPointsEarned += 50;
     if (speedBonus) this.starPointsEarned += 25;
     this.starPointsEarned += this.bunniesRescued * 30;
+
+    // Achievement: first word, speed demon, word master, explorer
+    const profile = this.sceneData.profile;
+    this.checkAchievement('first-word', 1, 1);
+    if (speedBonus) this.checkAchievement('speed-demon', 1, 1);
+    this.checkAchievement('word-master', 1, 50);
+    this.checkAchievement('explorer', 1, 3);
+    // Persist points to profile
+    awardPoints(profile, this.starPointsEarned);
+    profile.stats.totalWordsSpelled++;
+    // Emit new achievements to UIScene
+    if (this.newAchievements.length > 0) {
+      this.events.emit('achievementsUnlocked', [...this.newAchievements]);
+      this.newAchievements = [];
+    }
 
     this.spawnWordCompleteEffect();
     this.cameras.main.flash(500, 255, 255, 100);
@@ -538,6 +564,11 @@ export class GameScene extends Phaser.Scene {
     this.spawnCollectParticles(cage.x, cage.y);
     cage.setTint(0x4caf50);
     this.events.emit('bunnyRescued', this.bunniesRescued);
+    // Achievement: bunny-friend (first rescue)
+    this.checkAchievement('bunny-friend', 1, 1);
+    const profile = this.sceneData.profile;
+    profile.stats.totalBunniesRescued++;
+    this.checkAchievement('bunny-rescuer', profile.stats.totalBunniesRescued, 10);
   }
 
   private collectPowerUp(
@@ -685,6 +716,37 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Called by UIScene's touch jump button to inject a jump impulse.
+   * Public so UIScene can access it via scene.get('GameScene').
+   */
+  onTouchJump() {
+    if (!this.player) return;
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    const onGround = this.player.body.blocked.down;
+    const jumpHeight = this.activePowerUp === 'rocket-boots' ? -650 : -450;
+    if (onGround || this.time.now - this.coyoteTime < 150) {
+      body.setVelocityY(jumpHeight);
+    } else {
+      this.jumpBuffered = true;
+      if (this.jumpBufferTimer) this.jumpBufferTimer.destroy();
+      this.jumpBufferTimer = this.time.delayedCall(200, () => {
+        this.jumpBuffered = false;
+      });
+    }
+  }
+
+  /**
+   * Progress or unlock a single achievement on the profile.
+   * Newly unlocked achievements are queued in newAchievements for display.
+   */
+  private checkAchievement(id: string, increment: number, threshold: number) {
+    const unlocked = progressAchievement(this.sceneData.profile, id, increment, threshold);
+    if (unlocked) {
+      this.newAchievements.push(id);
+    }
+  }
+
   update() {
     if (!this.player || !this.cursors) return;
 
@@ -701,11 +763,13 @@ export class GameScene extends Phaser.Scene {
     const moveSpeed = this.activePowerUp === 'speed-boost' ? 300 : 200;
     const jumpHeight = this.activePowerUp === 'rocket-boots' ? -650 : -450;
 
-    // Horizontal movement
-    if (this.cursors.left.isDown || this.wasdKeys.A.isDown) {
+    // Horizontal movement (keyboard + touch)
+    const touchLeft = this.registry.get('touchLeft') as boolean | undefined;
+    const touchRight = this.registry.get('touchRight') as boolean | undefined;
+    if (this.cursors.left.isDown || this.wasdKeys.A.isDown || touchLeft) {
       body.setVelocityX(-moveSpeed);
       this.player.setFlipX(true);
-    } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) {
+    } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown || touchRight) {
       body.setVelocityX(moveSpeed);
       this.player.setFlipX(false);
     }

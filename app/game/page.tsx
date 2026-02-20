@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Profile, GameSession, GameSettings, TileState } from '@/core/types';
 import { getProfile, getSettings, saveSettings, saveSession, resetAllData, exportData } from '@/core/persistence';
-import { saveProfileData } from '@/profiles/profileManager';
+import { saveProfileData, updateDailyStreak } from '@/profiles/profileManager';
 import { DIFFICULTY_CONFIGS, getDifficultyForGrade } from '@/core/difficultyConfig';
 import { generateBoard } from '@/core/boardGenerator';
 import { ReviewBasket } from '@/core/reviewBasket';
@@ -79,6 +79,10 @@ function GameContent() {
         soundEnabled: true,
         musicEnabled: true,
       });
+
+      // Update daily streak and persist (works for both modes)
+      updateDailyStreak(loadedProfile);
+      await saveProfileData(loadedProfile);
 
       // Initialize game
       const difficulty = loadedProfile.preferredDifficulty || getDifficultyForGrade(loadedProfile.defaultGrade);
@@ -445,10 +449,16 @@ function GameContent() {
     return (
       <PhaserGame
         profile={profile}
-        onGameComplete={(pts) => {
-          router.push(`/?earned=${pts}`);
+        onGameComplete={async (pts) => {
+          // Points and achievements already updated on profile object by GameScene
+          // just persist and go home
+          await saveProfileData(profile);
+          router.push(`/profile?id=${profile.id}`);
         }}
-        onBack={() => router.push('/')}
+        onBack={async () => {
+          await saveProfileData(profile);
+          router.push('/');
+        }}
       />
     );
   }

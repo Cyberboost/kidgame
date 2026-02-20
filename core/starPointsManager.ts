@@ -46,3 +46,27 @@ export function calculateLevelReward(
   points += bunniesRescued * 30;
   return Math.round(points);
 }
+
+/**
+ * Increments or unlocks an achievement on the profile.
+ * Mutates in memory; caller must persist with saveProfileData().
+ * Returns true if the achievement was newly unlocked by this call.
+ */
+export function progressAchievement(
+  profile: Profile,
+  achievementId: string,
+  increment: number,
+  threshold: number
+): boolean {
+  const current = profile.achievements[achievementId] ?? { unlocked: false, progress: 0 };
+  if (current.unlocked) return false;
+
+  const newProgress = current.progress + increment;
+  const nowUnlocked = newProgress >= threshold;
+  profile.achievements[achievementId] = {
+    unlocked: nowUnlocked,
+    progress: newProgress,
+    unlockedAt: nowUnlocked ? new Date().toISOString() : current.unlockedAt,
+  };
+  return nowUnlocked;
+}
