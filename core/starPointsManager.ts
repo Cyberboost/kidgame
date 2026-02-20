@@ -5,6 +5,11 @@ export function awardPoints(profile: Profile, amount: number): void {
   profile.totalStarPointsEarned += amount;
 }
 
+/**
+ * Deducts star points from the profile. Returns false if insufficient balance.
+ * Note: This mutates the profile object in memory only.
+ * Callers must persist the change with saveProfileData() after a successful spend.
+ */
 export function spendPoints(profile: Profile, amount: number): boolean {
   if (profile.starPoints < amount) return false;
   profile.starPoints -= amount;

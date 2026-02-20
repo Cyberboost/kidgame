@@ -465,7 +465,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-
   private completeWord() {
     if (this.levelCompleteTriggered) return;
     this.levelCompleteTriggered = true;

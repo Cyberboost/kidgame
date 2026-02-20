@@ -74,6 +74,10 @@ export default function PhaserGame({ profile, onGameComplete, onBack }: PhaserGa
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Intentionally empty: game is initialized once on mount. Prop callbacks are
+    // forwarded into the Phaser scene via the scene's init data on first start and
+    // are stable references from the parent page, so re-running on every render
+    // would cause the game to be destroyed and recreated unnecessarily.
   }, []);
 
   return (
