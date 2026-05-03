@@ -158,6 +158,13 @@ export class ModeManager {
           hasMissions: true,
           hasProgression: true,
         };
+      case 'pattern':
+        return {
+          usesFocusMeter: false,
+          usesMomentum: true,
+          hasMissions: false,
+          hasProgression: false,
+        };
       default:
         return {
           usesFocusMeter: false,
@@ -181,6 +188,8 @@ export class ModeManager {
         // Adventure mode might require certain achievements
         // For now, always available
         return true;
+      case 'pattern':
+        return true; // Always available
       default:
         return false;
     }

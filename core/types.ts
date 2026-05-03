@@ -5,7 +5,7 @@ export type Grade = 'PreK' | 'K' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
 export type DifficultyTier = 'Sprout' | 'Explorer' | 'Ranger' | 'Guardian';
 
 // ADHD-Optimized Game Modes
-export type GameMode = 'classic' | 'focus' | 'adventure';
+export type GameMode = 'classic' | 'focus' | 'adventure' | 'pattern';
 
 // Age-based groupings for adaptive difficulty
 export type AgeRange = '4-6' | '7-8' | '9-10';
@@ -204,3 +204,44 @@ export interface GameSettings {
   animationSpeed?: 'slow' | 'normal' | 'fast';
   reducedMotion?: boolean;
 }
+
+// Pattern Mode (Simon-style game) Types
+export type PatternColor = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange';
+
+export interface PatternTileState {
+  color: PatternColor;
+  position: number;
+  isActive: boolean;
+  isPlaying: boolean;
+}
+
+export interface PatternSequence {
+  colors: PatternColor[];
+  round: number;
+  difficulty: number;
+}
+
+export interface PatternRound {
+  sequence: PatternColor[];
+  userInput: PatternColor[];
+  completed: boolean;
+  correct: boolean;
+  attempts: number;
+}
+
+export interface PatternGameState {
+  currentRound: number;
+  currentSequence: PatternColor[];
+  userInput: PatternColor[];
+  isPlayingSequence: boolean;
+  isUserTurn: boolean;
+  score: number;
+  highScore: number;
+  streak: number;
+  hintsUsed: number;
+  maxSequenceLength: number;
+  playbackSpeed: number; // milliseconds between colors
+  tiles: PatternTileState[];
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
