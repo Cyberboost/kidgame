@@ -4,6 +4,15 @@ export type Grade = 'PreK' | 'K' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
 
 export type DifficultyTier = 'Sprout' | 'Explorer' | 'Ranger' | 'Guardian';
 
+// ADHD-Optimized Game Modes
+export type GameMode = 'classic' | 'focus' | 'adventure';
+
+// Age-based groupings for adaptive difficulty
+export type AgeRange = '4-6' | '7-8' | '9-10';
+
+// Sensory profiles for ADHD-friendly customization
+export type SensoryProfile = 'calm' | 'adventure' | 'minimal';
+
 export interface DifficultyConfig {
   tier: DifficultyTier;
   grades: Grade[];
@@ -45,6 +54,36 @@ export interface WordPerformance {
   lastAttempt: Date;
 }
 
+// Micro-mission for Focus Mode
+export interface MicroMission {
+  id: string;
+  type: 'speed-spell' | 'bunny-rush' | 'focus-challenge' | 'letter-hunt';
+  targetWord?: string;
+  targetLetter?: string;
+  targetCount?: number;
+  timeLimit: number;
+  focusReward: number;
+  completed: boolean;
+  startTime?: number;
+}
+
+// Focus Meter state for ADHD optimization
+export interface FocusMeterState {
+  current: number;
+  max: number;
+  drainRate: number; // points per second
+  lastUpdate: number; // timestamp
+  isPaused: boolean;
+}
+
+// Momentum/streak system for motivation
+export interface MomentumState {
+  level: 'warming-up' | 'on-fire' | 'unstoppable' | 'none';
+  multiplier: number; // 1.0x to 3.0x
+  consecutiveCorrect: number;
+  streakBonus: number;
+}
+
 export interface Profile {
   id: string;
   nickname: string;
@@ -65,6 +104,11 @@ export interface Profile {
   };
   customWords: string[];
   wordPerformance: { [word: string]: WordPerformance };
+  // ADHD-optimized profile fields
+  ageRange?: AgeRange;
+  sensoryProfile?: SensoryProfile;
+  preferredMode?: GameMode;
+  masteredWords?: string[];
 }
 
 export interface GameSession {
@@ -103,6 +147,12 @@ export interface GameSession {
       turnsTaken: number;
     };
   };
+  // ADHD-optimized game mode fields
+  gameMode?: GameMode;
+  focusMeter?: FocusMeterState;
+  momentum?: MomentumState;
+  microMission?: MicroMission;
+  ageRange?: AgeRange;
 }
 
 export interface YardTheme {
@@ -123,6 +173,11 @@ export interface YardTheme {
     bunnyImage: string;
     trapImage: string;
   };
+  // Sensory profile categorization
+  sensoryProfile?: SensoryProfile;
+  animationSpeed?: 'slow' | 'normal' | 'fast';
+  particleEffects?: boolean;
+  soundProfile?: 'quiet' | 'moderate' | 'energetic';
 }
 
 export interface GameAction {
@@ -143,4 +198,9 @@ export interface GameSettings {
   speechEnabled: boolean;
   soundEnabled: boolean;
   musicEnabled: boolean;
+  // ADHD-optimized settings
+  sensoryProfile?: SensoryProfile;
+  particleEffects?: boolean;
+  animationSpeed?: 'slow' | 'normal' | 'fast';
+  reducedMotion?: boolean;
 }
