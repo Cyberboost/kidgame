@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense, lazy } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Profile, GameSession, GameSettings, TileState } from '@/core/types';
 import { getProfile, getSettings, saveSettings, saveSession, resetAllData, exportData } from '@/core/persistence';
@@ -20,6 +20,8 @@ import Header from '@/components/Header';
 import SettingsModal from '@/components/SettingsModal';
 import { LivyCharacter, LivyPose } from '@/components/characters';
 
+const PhaserGame = lazy(() => import('./platformer/PhaserGame'));
+
 function GameContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -28,6 +30,8 @@ function GameContent() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<GameSession | null>(null);
   const [settings, setSettings] = useState<GameSettings | null>(null);
+  // gameMode: 'platformer' = side-scrolling Phaser platformer (default), 'grid' = legacy grid-based spelling game
+  const [gameMode, setGameMode] = useState<'platformer' | 'grid'>('platformer');
   const [reviewBasket, setReviewBasket] = useState<ReviewBasket | null>(null);
   const [wordSelector, setWordSelector] = useState<WordSelector | null>(null);
   const [performanceTracker, setPerformanceTracker] = useState<PerformanceTracker | null>(null);
@@ -440,6 +444,45 @@ function GameContent() {
     return null;
   }
 
+  // Platformer mode: render the Phaser-based side-scrolling game
+  if (gameMode === 'platformer') {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-300 to-grass-200">
+          <LivyCharacter pose="running" size="large" animated={true} />
+          <div className="text-2xl font-bold text-gray-800 mt-4">Loading platformer...</div>
+        </div>
+      }>
+        <div className="relative">
+          {/* Mode toggle */}
+          <div className="absolute top-2 right-2 z-10">
+            <button
+              onClick={() => setGameMode('grid')}
+              className="bg-white bg-opacity-80 text-gray-700 text-xs font-semibold px-3 py-1 rounded-full shadow hover:bg-opacity-100 transition"
+              title="Switch to classic grid game"
+            >
+              Classic Mode
+            </button>
+          </div>
+          <PhaserGame
+            profile={profile}
+            targetWord={session.currentWord}
+            settings={settings}
+            onLevelComplete={async (stats) => {
+              // Save stats to profile
+              profile.stats.totalBunniesRescued += stats.bunniesRescued;
+              profile.stats.totalWordsSpelled += stats.wordsSpelled;
+              profile.stats.totalGamesPlayed++;
+              await saveProfileData(profile);
+            }}
+            onBack={() => router.push('/')}
+          />
+        </div>
+      </Suspense>
+    );
+  }
+
+  // Legacy grid game mode
   const theme = getThemeById(session.themeId);
   const remainingBunnies = session.bunnyTraps.filter(t => !t.rescued).length;
 
@@ -455,6 +498,17 @@ function GameContent() {
       />
 
       <div className="container mx-auto px-4 pb-8">
+        {/* Mode toggle */}
+        <div className="flex justify-end mb-2">
+          <button
+            onClick={() => setGameMode('platformer')}
+            className="bg-blue-500 text-white text-xs font-semibold px-3 py-1 rounded-full shadow hover:bg-blue-600 transition"
+            title="Switch to platformer game"
+          >
+            🎮 Platformer Mode
+          </button>
+        </div>
+
         {message && (
           <div className="max-w-2xl mx-auto mb-4 bg-white border-2 border-blue-400 rounded-lg p-4 text-center font-semibold text-gray-800 shadow-lg">
             {message}
