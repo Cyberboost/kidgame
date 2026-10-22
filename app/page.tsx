@@ -13,6 +13,7 @@ import {
   removeProfile,
 } from '@/profiles/profileManager';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function Home() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -66,6 +67,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-300 to-grass-200 py-8">
+      <div className="max-w-2xl mx-auto mb-6 px-4"><Link href="/name-adventure" className="block rounded-3xl bg-white p-6 text-center shadow-xl border-4 border-pink-300"><span className="text-5xl">🎈</span><h2 className="text-2xl font-extrabold text-purple-800">My Name Adventure</h2><p className="text-gray-700">Pop letter balloons and learn to spell your whole name!</p><span className="inline-block mt-3 bg-purple-700 text-white rounded-xl px-5 py-3 font-bold">Play Name Adventure →</span></Link></div>
       <ProfilePicker
         profiles={profiles}
         onSelectProfile={handleSelectProfile}
